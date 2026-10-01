@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FundSquad Co-Op Financial System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased flex flex-col">
+
+  <!-- Header Navigation -->
+  <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-indigo-500/20">
+          FS
+        </div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight text-white">FundSquad Co-Op</h1>
+          <p class="text-xs text-slate-400">Financial Operations & Management</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <a href="https://docs.google.com/spreadsheets/d/1m7CPy8srcmMCjC98cEwx86an09_n5fn2hWUGR6L9AQ8/edit" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition shadow-lg shadow-emerald-600/20 flex items-center gap-1.5">
+          📊 Open Sheets Record
+        </a>
+        <button onclick="confirmResetCycle()" class="bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800 text-xs font-semibold px-3 py-1.5 rounded-xl transition">
+          ⚠️ Reset Cycle
+        </button>
+        <div id="sync-status" class="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="sync-text">Connected</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div id="sabbath-banner" class="hidden bg-amber-500/10 border-b border-amber-500/20 text-amber-300 text-xs text-center py-2 px-4 font-semibold">
+    ⚠️ Sabbath Observance Active (Friday 18:00 – Saturday 18:00). New financial transactions are disabled.
+  </div>
+
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- Global Period Selectors & Billing Window Config -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Cycle Month:</label>
+        <div class="flex items-center gap-2">
+          <input type="month" id="active-month" onchange="onActiveMonthChange()" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-indigo-500">
+        </div>
+        <span id="active-display-span" class="text-xs text-indigo-400 font-medium"></span>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Strict Collection Window:</label>
+        <div class="text-xs text-slate-300 bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700/50 flex items-center justify-between">
+          <span>25th Prev Mo — 5th Active Mo</span>
+          <span class="text-emerald-400 font-semibold text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Manual Verification</span>
+        </div>
+      </div>
+      <div class="flex flex-col gap-1.5 md:items-end justify-center">
+        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Cycle Start (12-Mo):</label>
+        <input type="month" id="cycle-start" onchange="updateCyclePeriod()" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-indigo-500 w-full sm:w-auto">
+        <span id="cycle-display-span" class="text-xs text-slate-400"></span>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="flex flex-wrap gap-2 border-b border-slate-800 pb-2">
+      <button id="btn-tab-dash" onclick="switchTab('tab-dash')" class="tab-btn bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">Dashboard</button>
+      <button id="btn-tab-members" onclick="switchTab('tab-members')" class="tab-btn text-slate-400 hover:bg-slate-900 px-4 py-2 rounded-xl text-sm font-semibold transition">Members & Accounts</button>
+      <button id="btn-tab-summary" onclick="switchTab('tab-summary')" class="tab-btn text-slate-400 hover:bg-slate-900 px-4 py-2 rounded-xl text-sm font-semibold transition">Monthly Summary</button>
+      <button id="btn-tab-payouts" onclick="switchTab('tab-payouts')" class="tab-btn text-slate-400 hover:bg-slate-900 px-4 py-2 rounded-xl text-sm font-semibold transition">Payout Calculations</button>
+      <button id="btn-tab-loans" onclick="switchTab('tab-loans')" class="tab-btn text-slate-400 hover:bg-slate-900 px-4 py-2 rounded-xl text-sm font-semibold transition">Active Loans</button>
+      <button id="btn-tab-logs" onclick="switchTab('tab-logs')" class="tab-btn text-slate-400 hover:bg-slate-900 px-4 py-2 rounded-xl text-sm font-semibold transition">Transaction Logs</button>
+      <button id="btn-tab-notice" onclick="switchTab('tab-notice')" class="tab-btn text-slate-400 hover:bg-slate-900 px-4 py-2 rounded-xl text-sm font-semibold transition">Notice Generator</button>
+    </div>
+
+    <!-- TAB 1: DASHBOARD -->
+    <div id="tab-dash" class="tab-content space-y-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-2">
+          <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Total Accumulated Shares</p>
+          <h3 id="dash-total-shares" class="text-2xl font-bold text-white">฿0.00</h3>
+          <p class="text-xs text-emerald-400">Total member equity balance (Paid)</p>
+        </div>
+        <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-2">
+          <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Total Active Loans</p>
+          <h3 id="dash-total-loans" class="text-2xl font-bold text-amber-400">฿0.00</h3>
+          <p class="text-xs text-amber-500/80">Outstanding loan principal</p>
+        </div>
+        <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-2">
+          <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Window Available Loan Pool</p>
+          <h3 id="dash-loan-pool" class="text-2xl font-bold text-indigo-400">฿0.00</h3>
+          <p class="text-xs text-slate-400">Available to loan out this window</p>
+        </div>
+        <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-2">
+          <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Window Cash Outflow</p>
+          <h3 id="dash-outflow" class="text-2xl font-bold text-rose-400">฿0.00</h3>
+          <p class="text-xs text-slate-400">Disbursed loans</p>
+        </div>
+      </div>
+
+      <!-- Bank Reconciliation & Monthly In-Out Ledger -->
+      <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
+          <div>
+            <h2 class="font-bold text-base text-white">Billing Window Balance & Bank Reconciliation</h2>
+            <p class="text-xs text-slate-400">Match ledger calculations with your bank statement for the active billing span (25th–5th)</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button onclick="downloadMonthlyStatement()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-2 rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center gap-1.5">
+              📥 Download Bank Statement (.CSV)
+            </button>
+            <div class="flex items-center gap-2">
+              <label class="text-xs text-slate-400 font-medium">Actual Bank Balance:</label>
+              <input type="number" id="bank-statement-input" oninput="updateBankReconciliation()" placeholder="0.00" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-white w-32 focus:outline-none focus:border-indigo-500">
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+            <p class="text-xs text-slate-400 uppercase font-semibold">Beginning Balance</p>
+            <p id="recon-beginning" class="text-lg font-bold text-white mt-1">฿0.00</p>
+            <p class="text-[10px] text-slate-500 mt-0.5">Carried over from prior windows</p>
+          </div>
+          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+            <p class="text-xs text-emerald-400 uppercase font-semibold">Window Inflows (+)</p>
+            <p id="recon-inflow" class="text-lg font-bold text-emerald-400 mt-1">฿0.00</p>
+            <p class="text-[10px] text-slate-500 mt-0.5">Shares + Repayments + Fees</p>
+          </div>
+          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+            <p class="text-xs text-rose-400 uppercase font-semibold">Window Outflows (-)</p>
+            <p id="recon-outflow" class="text-lg font-bold text-rose-400 mt-1">฿0.00</p>
+            <p class="text-[10px] text-slate-500 mt-0.5">Loan disbursements</p>
+          </div>
+          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+            <p class="text-xs text-indigo-400 uppercase font-semibold">Calculated Ending Balance</p>
+            <p id="recon-ending" class="text-lg font-bold text-indigo-400 mt-1">฿0.00</p>
+            <p class="text-[10px] text-slate-500 mt-0.5">Expected cash on hand / bank</p>
+          </div>
+          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+            <p class="text-xs text-slate-400 uppercase font-semibold">Discrepancy / Variance</p>
+            <p id="recon-variance" class="text-lg font-bold text-white mt-1">฿0.00</p>
+            <p id="recon-status-text" class="text-[10px] text-slate-500 mt-0.5">Enter bank statement balance</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
+          <h2 class="font-bold text-base text-white">Net Cash Flow (Billing Window)</h2>
+          <div class="text-3xl font-extrabold text-indigo-400" id="dash-net-flow">฿0.00</div>
+          <p class="text-xs text-slate-400">Net liquidity change during the 25th-to-5th billing window.</p>
+        </div>
+        <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
+          <h2 class="font-bold text-base text-white">Total Active Accounts</h2>
+          <div class="text-3xl font-extrabold text-white" id="dash-acc-count">0</div>
+          <p class="text-xs text-slate-400">Registered member account instances receiving monthly share billing.</p>
+        </div>
+        <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4 flex flex-col justify-between">
+          <div>
+            <h2 class="font-bold text-base text-white">Cycle Interest Dividend Pool</h2>
+            <p class="text-xs text-slate-400 mt-1">Pool 100% of collected loan interest and distribute equally per account.</p>
+          </div>
+          <button onclick="calculateDividends()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20">
+            Calculate Cycle Interest Payout
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: MEMBERS & ACCOUNTS -->
+    <div id="tab-members" class="tab-content hidden space-y-6">
+      <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
+        <h2 class="font-bold text-base text-white">Register Member & Generate Accounts</h2>
+        <form id="member-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs text-slate-400 font-medium mb-1">Full Name</label>
+            <input type="text" id="member-name" required placeholder="e.g. Krystal May" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 font-medium mb-1">Number of Accounts</label>
+            <input type="number" id="member-acc-count" min="1" max="5" value="1" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+          </div>
+          <div class="flex items-end">
+            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm py-2 rounded-xl transition shadow-lg shadow-indigo-600/20">
+              Generate Accounts
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
+        <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+          <h2 class="font-bold text-base text-white">Registered Accounts Directory</h2>
+          <span class="text-xs text-slate-400">Sequence, Member ID, Full Name, Accumulated Shares & Status</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
+              <tr>
+                <th class="p-3">#</th>
+                <th class="p-3">Member ID</th>
+                <th class="p-3">Member Full Name</th>
+                <th class="p-3">Accumulated Shares (Paid)</th>
+                <th class="p-3">Status</th>
+                <th class="p-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="member-table-body" class="divide-y divide-slate-800/50"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: MONTHLY SUMMARY -->
+    <div id="tab-summary" class="tab-content hidden space-y-6">
+      <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden space-y-2">
+        <div class="p-4 border-b border-slate-800">
+          <h2 class="font-bold text-base text-white">Individual Account Checklist & Status</h2>
+          <p class="text-xs text-slate-400">Separate breakdown of share contributions and loan collectibles per account for this billing window</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
+              <tr>
+                <th class="p-3">#</th>
+                <th class="p-3">Account ID</th>
+                <th class="p-3">Member Name</th>
+                <th class="p-3">Share Due (THB)</th>
+                <th class="p-3">Share Status</th>
+                <th class="p-3">Loan Collectible (THB)</th>
+                <th class="p-3">Loan Status</th>
+              </tr>
+            </thead>
+            <tbody id="summary-account-table-body" class="divide-y divide-slate-800/50"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden space-y-2">
+        <div class="p-4 border-b border-slate-800">
+          <h2 class="font-bold text-base text-white">Member Total Payment Summary (Monthly)</h2>
+          <p class="text-xs text-slate-400">Aggregated total amount due per member across all their registered accounts for the active month</p>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
+              <tr>
+                <th class="p-3">#</th>
+                <th class="p-3">Member Name</th>
+                <th class="p-3">Accounts</th>
+                <th class="p-3">Total Shares Due</th>
+                <th class="p-3">Total Loans Due</th>
+                <th class="p-3 font-bold text-indigo-400">Combined Total Payout</th>
+              </tr>
+            </thead>
+            <tbody id="member-summary-table-body" class="divide-y divide-slate-800/50"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3.5: PAYOUT CALCULATIONS -->
+    <div id="tab-payouts" class="tab-content hidden space-y-6">
+      <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="font-bold text-base text-white">End-of-Cycle Payout Calculations</h2>
+            <p class="text-xs text-slate-400">Track projected total returns per account</p>
+          </div>
+          <button onclick="calculateDividends()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">Recompute</button>
+        </div>
+      </div>
+      <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
+              <tr>
+                <th class="p-3">#</th>
+                <th class="p-3">Account ID</th>
+                <th class="p-3">Member Name</th>
+                <th class="p-3">Accumulated Shares</th>
+                <th class="p-3">Cycle Interest Share</th>
+                <th class="p-3 font-bold text-indigo-400">Total Projected Payout</th>
+              </tr>
+            </thead>
+            <tbody id="payouts-table-body" class="divide-y divide-slate-800/50"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: ACTIVE LOANS -->
+    <div id="tab-loans" class="tab-content hidden space-y-6">
+      <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
+        <div class="p-4 border-b border-slate-800">
+          <h2 class="font-bold text-base text-white">Active Loan Schedule Monitor</h2>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
+              <tr>
+                <th class="p-2.5">#</th>
+                <th class="p-2.5">Account ID</th>
+                <th class="p-2.5">Name</th>
+                <th class="p-2.5">Term</th>
+                <th class="p-2.5">Balance</th>
+                <th class="p-2.5">Principal/Mo</th>
+                <th class="p-2.5">Interest/Mo</th>
+                <th class="p-2.5">Total Monthly Due</th>
+                <th class="p-2.5 text-center">Status</th>
+                <th class="p-2.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="loans-schedule-body" class="divide-y divide-slate-800/50"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: TRANSACTION LOGS -->
+    <div id="tab-logs" class="tab-content hidden space-y-6">
+      <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div class="flex justify-between items-center">
+          <h2 id="tx-form-title" class="font-bold text-base text-white">Record Transaction</h2>
+          <button id="tx-cancel-edit-btn" onclick="cancelTxEdit()" class="hidden text-xs text-rose-400 hover:underline">Cancel Edit</button>
+        </div>
+        <form id="tx-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <input type="hidden" id="edit-tx-index" value="-1">
+          <div>
+            <label class="block text-xs text-slate-400 font-medium mb-1">Transaction Type</label>
+            <select id="tx-type" onchange="toggleTxFields()" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+              <option value="Share Contribution">Share Contribution (By Member Name)</option>
+              <option value="Member Loan">Member Loan (By Account ID)</option>
+              <option value="Non-Member Loan">Non-Member Loan (By Account ID)</option>
+              <option value="Loan Repayment">Loan Repayment (By Account ID)</option>
+              <option value="Late Fee">Late Fee Payment</option>
+            </select>
+          </div>
+          <div id="container-member-select">
+            <label class="block text-xs text-slate-400 font-medium mb-1">Select Member</label>
+            <select id="tx-member" onchange="autoCalculateShareAmount()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"></select>
+          </div>
+          <div id="container-account-select" class="hidden">
+            <label class="block text-xs text-slate-400 font-medium mb-1">Select Specific Account</label>
+            <select id="tx-account" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"></select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 font-medium mb-1">Amount (THB)</label>
+            <input type="number" id="tx-amount" min="1" step="0.01" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs text-slate-400 font-medium mb-1">Transaction Date</label>
+            <input type="date" id="tx-date" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+          </div>
+          <div id="loan-term-container" class="hidden">
+            <label class="block text-xs text-slate-400 font-medium mb-1">Loan Term (Months)</label>
+            <input type="number" id="tx-loan-term" min="1" max="8" value="4" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+          </div>
+          <div id="guarantor-container" class="hidden">
+            <label class="block text-xs text-slate-400 font-medium mb-1">Guarantor Name</label>
+            <input type="text" id="tx-guarantor" placeholder="Required for non-members" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+          </div>
+          <div class="sm:col-span-2 lg:col-span-4 flex justify-end">
+            <button type="submit" id="tx-submit-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-6 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20">
+              Submit Transaction
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
+        <div class="p-4 border-b border-slate-800">
+          <h2 class="font-bold text-base text-white">Transaction History</h2>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
+              <tr>
+                <th class="p-3">Date</th>
+                <th class="p-3">Account / Member</th>
+                <th class="p-3">Type</th>
+                <th class="p-3">Amount</th>
+                <th class="p-3">Guarantor</th>
+                <th class="p-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="logs-table-body" class="divide-y divide-slate-800/50"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: NOTICE GENERATOR -->
+    <div id="tab-notice" class="tab-content hidden space-y-6">
+      <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="font-bold text-base text-white">Group Chat Notice Generator</h2>
+          </div>
+          <button onclick="copyGroupSummary()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">Copy Notice</button>
+        </div>
+        <textarea id="group-summary-text" rows="14" readonly class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs font-mono text-slate-300 focus:outline-none"></textarea>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let accounts = {};
+    let transactions = [];
+    let cycleStartMonth = '2026-11';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const cycleStartInput = document.getElementById('cycle-start');
+      if (cycleStartInput) cycleStartInput.value = cycleStartMonth;
+      
+      const savedMonth = localStorage.getItem('fs_active_month');
+      const activeMonthInput = document.getElementById('active-month');
+      if (activeMonthInput) {
+        if (savedMonth) {
+          activeMonthInput.value = savedMonth;
+        } else {
+          activeMonthInput.value = cycleStartMonth;
+          localStorage.setItem('fs_active_month', cycleStartMonth);
+        }
+      }
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      const dateInput = document.getElementById('tx-date');
+      if (dateInput) dateInput.value = todayStr;
+
+      checkSabbath();
+      updateCyclePeriod();
+      loadCloudData();
+    });
+
+    function onActiveMonthChange() {
+      const activeMonthInput = document.getElementById('active-month');
+      if (!activeMonthInput) return;
+      localStorage.setItem('fs_active_month', activeMonthInput.value);
+      refreshAllViews();
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = `px-4 py-3 rounded-xl text-xs font-semibold shadow-xl border transition-all duration-300 transform translate-y-2 opacity-0 flex items-center gap-2 ${
+        type === 'error' ? 'bg-rose-950/90 text-rose-200 border-rose-800' : 'bg-indigo-950/90 text-indigo-200 border-indigo-800'
+      }`;
+      toast.innerHTML = message;
+      container.appendChild(toast);
+
+      setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
+      setTimeout(() => {
+        toast.classList.add('opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    function loadCloudData() {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(data => {
+            if (data && (Object.keys(data.accounts || {}).length > 0 || (data.transactions || []).length > 0)) {
+              accounts = data.accounts || {};
+              transactions = data.transactions || [];
+            } else {
+              accounts = JSON.parse(localStorage.getItem('fs_accounts')) || {};
+              transactions = JSON.parse(localStorage.getItem('fs_transactions')) || [];
+            }
+            recomputeAccountSharesFromTransactions();
+            refreshAllViews();
+            updateSyncBadge(true, "Cloud Synced");
+          })
+          .withFailureHandler(err => {
+            console.warn("Cloud load failed, falling back to local storage:", err);
+            loadLocalData();
+          })
+          .loadCoOpData();
+      } else {
+        loadLocalData();
+      }
+    }
+
+    function loadLocalData() {
+      try {
+        accounts = JSON.parse(localStorage.getItem('fs_accounts')) || {};
+        transactions = JSON.parse(localStorage.getItem('fs_transactions')) || [];
+      } catch (e) {
+        accounts = {};
+        transactions = [];
+      }
+      recomputeAccountSharesFromTransactions();
+      refreshAllViews();
+      updateSyncBadge(false, "Local Mode");
+    }
+
+    function saveData() {
+      localStorage.setItem('fs_accounts', JSON.stringify(accounts));
+      localStorage.setItem('fs_transactions', JSON.stringify(transactions));
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(() => {
+            updateSyncBadge(true, "Cloud Synced");
+          })
+          .withFailureHandler(err => {
+            console.warn("Cloud save failed:", err);
+            updateSyncBadge(false, "Local Mode (Save Error)");
+          })
+          .saveCoOpData({ accounts, transactions });
+      } else {
+        updateSyncBadge(false, "Local Mode");
+      }
+    }
+
+    function confirmResetCycle() {
+      if (confirm("Are you sure you want to reset all co-op accounts and transaction logs for this cycle? This action cannot be undone.")) {
+        accounts = {};
+        transactions = [];
+        localStorage.removeItem('fs_accounts');
+        localStorage.removeItem('fs_transactions');
+        
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          google.script.run.resetCoOpCycleData();
+        }
+
+        refreshAllViews();
+        showToast("Cycle data has been completely reset.");
+      }
+    }
+
+    function updateSyncBadge(connected, text) {
+      const badge = document.getElementById('sync-status');
+      const textSpan = document.getElementById('sync-text');
+      if (!badge || !textSpan) return;
+
+      textSpan.innerText = text;
+      if (connected) {
+        badge.className = "flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+      } else {
+        badge.className = "flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20";
+      }
+    }
+
+    function updateCyclePeriod() {
+      const cycleStartInput = document.getElementById('cycle-start');
+      if (!cycleStartInput) return;
+      cycleStartMonth = cycleStartInput.value;
+      if (cycleStartMonth) {
+        const [year, month] = cycleStartMonth.split('-').map(Number);
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month - 1 + 11, 1);
+
+        const startStr = startDate.toLocaleString('default', { month: 'short', year: 'numeric' });
+        const endStr = endDate.toLocaleString('default', { month: 'short', year: 'numeric' });
+
+        const span = document.getElementById('cycle-display-span');
+        if (span) span.innerText = `${startStr} – ${endStr} (12 Mo)`;
+      }
+      refreshAllViews();
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-indigo-600', 'text-white');
+        btn.classList.add('text-slate-400', 'hover:bg-slate-900');
+      });
+
+      const targetTab = document.getElementById(tabId);
+      if (targetTab) targetTab.classList.remove('hidden');
+      
+      const activeBtn = document.getElementById('btn-' + tabId);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-400', 'hover:bg-slate-900');
+        activeBtn.classList.add('bg-indigo-600', 'text-white');
+      }
+    }
+
+    function checkSabbath() {
+      const now = new Date();
+      const day = now.getDay(); 
+      const hour = now.getHours();
+      let isSabbath = (day === 5 && hour >= 18) || (day === 6 && hour < 18);
+
+      if (isSabbath) {
+        const banner = document.getElementById('sabbath-banner');
+        if (banner) banner.classList.remove('hidden');
+        const submitBtn = document.getElementById('tx-submit-btn');
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.classList.replace('bg-indigo-600', 'bg-slate-700');
+          submitBtn.innerText = 'Disabled During Sabbath';
+        }
+      }
+    }
+
+    function getSortedAccounts() {
+      if (!accounts || typeof accounts !== 'object') return [];
+      return Object.values(accounts).sort((a, b) => {
+        const nameCompare = (a.name || '').localeCompare(b.name || '');
+        if (nameCompare !== 0) return nameCompare;
+        return (a.id || '').localeCompare(b.id || '', undefined, { numeric: true });
+      });
+    }
+
+    function getUniqueMemberNames() {
+      const namesSet = new Set();
+      Object.values(accounts).forEach(acc => {
+        if (acc && acc.name) namesSet.add(acc.name.trim());
+      });
+      return Array.from(namesSet).sort();
+    }
+
+    function getBillingWindow(activeMonthStr) {
+      if (!activeMonthStr) activeMonthStr = '2026-11';
+      const [y, m] = activeMonthStr.split('-').map(Number);
+      const prevDate = new Date(y, m - 2, 25);
+      const activeDate = new Date(y, m - 1, 5);
+
+      const startStr = prevDate.toISOString().split('T')[0];
+      const endStr = activeDate.toISOString().split('T')[0];
+      return { startStr, endStr };
+    }
+
+    function isDateInBillingWindow(dateStr, activeMonthStr) {
+      if (!dateStr || !activeMonthStr) return false;
+      const { startStr, endStr } = getBillingWindow(activeMonthStr);
+      return dateStr >= startStr && dateStr <= endStr;
+    }
+
+    function recomputeAccountSharesFromTransactions() {
+      // Reset all account shares to 0, then sum up verified Share Contribution transactions
+      Object.values(accounts).forEach(acc => { acc.shares = 0; });
+      transactions.forEach(tx => {
+        if (tx.type === 'Share Contribution' && tx.memberName) {
+          const memberAccs = Object.values(accounts).filter(a => a.name && a.name.trim().toLowerCase() === tx.memberName.trim().toLowerCase());
+          if (memberAccs.length > 0) {
+            const sharePerAcc = tx.amount / memberAccs.length;
+            memberAccs.forEach(acc => { acc.shares = (acc.shares || 0) + sharePerAcc; });
+          }
+        }
+      });
+    }
+
+    const memberForm = document.getElementById('member-form');
+    if (memberForm) {
+      memberForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const nameInput = document.getElementById('member-name');
+        const countInput = document.getElementById('member-acc-count');
+        
+        if (!nameInput || !countInput) return;
+        const fullName = nameInput.value.trim();
+        const count = parseInt(countInput.value) || 1;
+
+        const firstName = fullName.split(' ')[0].replace(/[^a-zA-Z]/g, '');
+        const existingMemberAccounts = Object.values(accounts).filter(a => a.name && a.name.toLowerCase() === fullName.toLowerCase());
+        
+        if (existingMemberAccounts.length + count > 5) {
+          alert(`Cannot add ${count} account(s). Maximum of 5 accounts per member limit reached.`);
+          return;
+        }
+
+        const createdIds = [];
+        for (let i = 0; i < count; i++) {
+          const seqNum = existingMemberAccounts.length + i + 1;
+          const accId = `${firstName}-${seqNum}`;
+
+          accounts[accId] = {
+            id: accId,
+            name: fullName,
+            shares: 0, // Starts at 0 until paid via transaction log
+            monthlyShareDue: 2000,
+            loanBalance: 0,
+            loanTermMonths: 4,
+            loanRate: 0.03,
+            dividends: 0
+          };
+          createdIds.push(accId);
+        }
+
+        recomputeAccountSharesFromTransactions();
+        saveData();
+        showToast(`Created ${count} account(s): ${createdIds.join(', ')}`);
+        memberForm.reset();
+        countInput.value = 1;
+        refreshAllViews();
+      });
+    }
+
+    function editMemberInfo(accId) {
+      const acc = accounts[accId];
+      if (!acc) return;
+
+      const newName = prompt(`Update Name for Account ${accId}:`, acc.name);
+      if (newName === null) return;
+
+      const newSharesStr = prompt(`Update Accumulated Shares (THB) for Account ${accId}:`, acc.shares);
+      if (newSharesStr === null) return;
+
+      const newShares = parseFloat(newSharesStr);
+      if (newName.trim() !== '') acc.name = newName.trim();
+      if (!isNaN(newShares) && newShares >= 0) acc.shares = newShares;
+
+      saveData();
+      refreshAllViews();
+      showToast(`Account ${accId} updated.`);
+    }
+
+    function toggleTxFields() {
+      const typeEl = document.getElementById('tx-type');
+      if (!typeEl) return;
+      const type = typeEl.value;
+      const containerMember = document.getElementById('container-member-select');
+      const containerAccount = document.getElementById('container-account-select');
+      const loanTermContainer = document.getElementById('loan-term-container');
+      const guarantorContainer = document.getElementById('guarantor-container');
+
+      if (type === 'Share Contribution') {
+        if (containerMember) containerMember.classList.remove('hidden');
+        if (containerAccount) containerAccount.classList.add('hidden');
+        autoCalculateShareAmount();
+      } else {
+        if (containerMember) containerMember.classList.add('hidden');
+        if (containerAccount) containerAccount.classList.remove('hidden');
+      }
+
+      if (type === 'Member Loan' || type === 'Non-Member Loan') {
+        if (loanTermContainer) loanTermContainer.classList.remove('hidden');
+      } else {
+        if (loanTermContainer) loanTermContainer.classList.add('hidden');
+      }
+
+      if (type === 'Non-Member Loan') {
+        if (guarantorContainer) guarantorContainer.classList.remove('hidden');
+      } else {
+        if (guarantorContainer) guarantorContainer.classList.add('hidden');
+      }
+    }
+
+    function autoCalculateShareAmount() {
+      const typeEl = document.getElementById('tx-type');
+      if (!typeEl || typeEl.value !== 'Share Contribution') return;
+
+      const memberSelect = document.getElementById('tx-member');
+      const amountInput = document.getElementById('tx-amount');
+      if (!memberSelect || !amountInput) return;
+
+      const selectedMember = memberSelect.value;
+      if (!selectedMember) return;
+
+      const memberAccounts = Object.values(accounts).filter(a => a.name && a.name.trim().toLowerCase() === selectedMember.toLowerCase());
+      amountInput.value = memberAccounts.length * 2000;
+    }
+
+    const txForm = document.getElementById('tx-form');
+    if (txForm) {
+      txForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const editIndexInput = document.getElementById('edit-tx-index');
+        const typeEl = document.getElementById('tx-type');
+        const amountEl = document.getElementById('tx-amount');
+        const dateEl = document.getElementById('tx-date');
+        const guarantorEl = document.getElementById('tx-guarantor');
+        const termEl = document.getElementById('tx-loan-term');
+
+        const editIndex = editIndexInput ? parseInt(editIndexInput.value) : -1;
+        const type = typeEl ? typeEl.value : '';
+        const amount = amountEl ? parseFloat(amountEl.value) : 0;
+        const date = dateEl ? dateEl.value : '';
+        const guarantor = guarantorEl ? guarantorEl.value : '';
+        const termMonths = termEl ? (parseInt(termEl.value) || 4) : 4;
+
+        if (editIndex >= 0 && transactions[editIndex]) {
+          reverseTransactionEffects(transactions[editIndex]);
+        }
+
+        let accId = null;
+        let memberName = null;
+
+        if (type === 'Share Contribution') {
+          const memberSelect = document.getElementById('tx-member');
+          memberName = memberSelect ? memberSelect.value : '';
+          if (!memberName) {
+            alert('Please select a valid member.');
+            return;
+          }
+        } else {
+          const accSelect = document.getElementById('tx-account');
+          accId = accSelect ? accSelect.value : '';
+          if (!accounts[accId]) {
+            alert('Please select a valid account.');
+            return;
+          }
+          
+          if ((type === 'Member Loan' || type === 'Non-Member Loan') && accounts[accId].loanBalance > 0 && editIndex < 0) {
+            alert(`Error: Account ${accId} already has an active loan balance.`);
+            if (editIndex >= 0) applyTransactionEffects(transactions[editIndex]);
+            return;
+          }
+          memberName = accounts[accId].name;
+        }
+
+        if (type === 'Non-Member Loan') {
+          if (amount > 20000) {
+            alert('Non-member loans cannot exceed 20,000 THB.');
+            if (editIndex >= 0) applyTransactionEffects(transactions[editIndex]);
+            return;
+          }
+          if (!guarantor) {
+            alert('Non-member loans require a guarantor.');
+            if (editIndex >= 0) applyTransactionEffects(transactions[editIndex]);
+            return;
+          }
+          if (accId && accounts[accId]) accounts[accId].loanRate = 0.05;
+        } else if (type === 'Member Loan') {
+          if (accId && accounts[accId]) accounts[accId].loanRate = 0.03;
+        }
+
+        const newTx = { accId, memberName, type, amount, date, guarantor, termMonths };
+
+        if (editIndex >= 0) {
+          transactions[editIndex] = newTx;
+          showToast('Transaction updated!');
+        } else {
+          transactions.push(newTx);
+          showToast('Transaction recorded!');
+        }
+
+        applyTransactionEffects(newTx);
+        recomputeAccountSharesFromTransactions();
+        saveData();
+        cancelTxEdit();
+        refreshAllViews();
+      });
+    }
+
+    function applyTransactionEffects(tx) {
+      if (tx.accId && accounts[tx.accId]) {
+        const acc = accounts[tx.accId];
+        if (tx.type === 'Member Loan' || tx.type === 'Non-Member Loan') {
+          acc.loanBalance = (acc.loanBalance || 0) + tx.amount;
+          acc.loanTermMonths = Math.min(8, Math.max(1, tx.termMonths || 4));
+        } else if (tx.type === 'Loan Repayment') {
+          acc.loanBalance = Math.max(0, (acc.loanBalance || 0) - tx.amount);
+        }
+      }
+    }
+
+    function reverseTransactionEffects(tx) {
+      if (tx.accId && accounts[tx.accId]) {
+        const acc = accounts[tx.accId];
+        if (tx.type === 'Member Loan' || tx.type === 'Non-Member Loan') {
+          acc.loanBalance = Math.max(0, (acc.loanBalance || 0) - tx.amount);
+        } else if (tx.type === 'Loan Repayment') {
+          acc.loanBalance = (acc.loanBalance || 0) + tx.amount;
+        }
+      }
+    }
+
+    function editTransaction(index) {
+      const tx = transactions[index];
+      if (!tx) return;
+
+      const editIndexInput = document.getElementById('edit-tx-index');
+      if (editIndexInput) editIndexInput.value = index;
+      
+      const typeEl = document.getElementById('tx-type');
+      if (typeEl) typeEl.value = tx.type;
+      
+      const amountEl = document.getElementById('tx-amount');
+      if (amountEl) amountEl.value = tx.amount;
+      
+      const dateEl = document.getElementById('tx-date');
+      if (dateEl) dateEl.value = tx.date;
+      
+      const guarantorEl = document.getElementById('tx-guarantor');
+      if (guarantorEl) guarantorEl.value = tx.guarantor || '';
+      
+      const termEl = document.getElementById('tx-loan-term');
+      if (termEl) termEl.value = tx.termMonths || 4;
+
+      toggleTxFields();
+
+      if (tx.type === 'Share Contribution') {
+        const memberEl = document.getElementById('tx-member');
+        if (memberEl) memberEl.value = tx.memberName || '';
+      } else {
+        const accEl = document.getElementById('tx-account');
+        if (accEl) accEl.value = tx.accId || '';
+      }
+
+      const titleEl = document.getElementById('tx-form-title');
+      if (titleEl) titleEl.innerText = `Edit Transaction #${index + 1}`;
+      
+      const submitBtn = document.getElementById('tx-submit-btn');
+      if (submitBtn) submitBtn.innerText = 'Update Transaction';
+      
+      const cancelBtn = document.getElementById('tx-cancel-edit-btn');
+      if (cancelBtn) cancelBtn.classList.remove('hidden');
+
+      switchTab('tab-logs');
+    }
+
+    function deleteTransaction(index) {
+      const tx = transactions[index];
+      if (!tx) return;
+
+      const label = tx.memberName || tx.accId;
+      if (confirm(`Delete ${tx.type} of ฿${tx.amount} for ${label}?`)) {
+        reverseTransactionEffects(tx);
+        transactions.splice(index, 1);
+        recomputeAccountSharesFromTransactions();
+        saveData();
+        refreshAllViews();
+        showToast('Transaction deleted.');
+      }
+    }
+
+    function cancelTxEdit() {
+      const editIndexInput = document.getElementById('edit-tx-index');
+      if (editIndexInput) editIndexInput.value = "-1";
+      
+      const form = document.getElementById('tx-form');
+      if (form) form.reset();
+      
+      toggleTxFields();
+      
+      const titleEl = document.getElementById('tx-form-title');
+      if (titleEl) titleEl.innerText = 'Record Transaction';
+      
+      const submitBtn = document.getElementById('tx-submit-btn');
+      if (submitBtn) submitBtn.innerText = 'Submit Transaction';
+      
+      const cancelBtn = document.getElementById('tx-cancel-edit-btn');
+      if (cancelBtn) cancelBtn.classList.add('hidden');
+    }
+
+    function renderDashboard() {
+      recomputeAccountSharesFromTransactions();
+
+      let monthlyInflow = 0;
+      let monthlyOutflow = 0;
+      let totalAccumulatedShares = 0;
+      let totalActiveLoans = 0;
+
+      Object.values(accounts).forEach(acc => {
+        totalAccumulatedShares += (acc.shares || 0);
+        totalActiveLoans += (acc.loanBalance || 0);
+      });
+
+      const activeMonthInput = document.getElementById('active-month');
+      const activeMonthVal = activeMonthInput ? activeMonthInput.value : '2026-11';
+      const { startStr, endStr } = getBillingWindow(activeMonthVal);
+
+      transactions.forEach(tx => {
+        if (!activeMonthVal || (tx.date >= startStr && tx.date <= endStr)) {
+          if (tx.type === 'Share Contribution' || tx.type === 'Loan Repayment' || tx.type === 'Late Fee') {
+            monthlyInflow += tx.amount;
+          } else if (tx.type === 'Member Loan' || tx.type === 'Non-Member Loan') {
+            monthlyOutflow += tx.amount;
+          }
+        }
+      });
+
+      const windowLoanPool = monthlyInflow;
+      let beginningBalance = 0;
+      if (activeMonthVal) {
+        transactions.forEach(tx => {
+          if (tx.date && tx.date < startStr) {
+            if (tx.type === 'Share Contribution' || tx.type === 'Loan Repayment' || tx.type === 'Late Fee') {
+              beginningBalance += tx.amount;
+            } else if (tx.type === 'Member Loan' || tx.type === 'Non-Member Loan') {
+              beginningBalance -= tx.amount;
+            }
+          }
+        });
+      }
+
+      const endingBalance = beginningBalance + monthlyInflow - monthlyOutflow;
+
+      const safeSetText = (id, text) => {
+        const el = document.getElementById(id);
+        if (el) el.innerText = text;
+      };
+
+      safeSetText('dash-inflow', `฿${monthlyInflow.toLocaleString(undefined, {minimumFractionDigits: 2})}`);
+      safeSetText('dash-loan-pool', `฿${windowLoanPool.toLocaleString(undefined, {minimumFractionDigits: 2})}`);
+      safeSetText('dash-outflow', `฿${monthlyOutflow.toLocaleString(undefined, {minimumFractionDigits: 2})}`);
+      safeSetText('dash-total-shares', `฿${totalAccumulatedShares.toLocaleString()}`);
+      safeSetText('dash-total-loans', `฿${totalActiveLoans.toLocaleString()}`);
+      
+      const netFlow = monthlyInflow - monthlyOutflow;
+      safeSetText('dash-net-flow', `฿${netFlow.toLocaleString(undefined, {minimumFractionDigits: 2})}`);
+      safeSetText('dash-acc-count', Object.keys(accounts).length);
+
+      safeSetText('recon-beginning', `฿${beginningBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}`);
+      safeSetText('recon-inflow', `฿${monthlyInflow.toLocaleString(undefined, {minimumFractionDigits: 2})}`);
+      safeSetText('recon-outflow', `฿${monthlyOutflow.toLocaleString(undefined, {minimumFractionDigits: 2})}`);
+      safeSetText('recon-ending', `฿${endingBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}`);
+
+      window.calculatedEndingBalance = endingBalance;
+      updateBankReconciliation();
+    }
+
+    function updateBankReconciliation() {
+      const bankInputEl = document.getElementById('bank-statement-input');
+      const bankInput = bankInputEl ? parseFloat(bankInputEl.value) : NaN;
+      const endingBalance = window.calculatedEndingBalance || 0;
+      const varianceEl = document.getElementById('recon-variance');
+      const statusText = document.getElementById('recon-status-text');
+
+      if (!varianceEl || !statusText) return;
+
+      if (isNaN(bankInput)) {
+        varianceEl.innerText = '฿0.00';
+        varianceEl.className = 'text-lg font-bold text-white mt-1';
+        statusText.innerText = 'Enter bank statement balance';
+        statusText.className = 'text-[10px] text-slate-500 mt-0.5';
+        return;
+      }
+
+      const variance = bankInput - endingBalance;
+      varianceEl.innerText = `฿${variance.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+      if (Math.abs(variance) < 0.01) {
+        varianceEl.className = 'text-lg font-bold text-emerald-400 mt-1';
+        statusText.innerText = '✔ Balanced perfectly with bank';
+        statusText.className = 'text-[10px] text-emerald-400 mt-0.5 font-semibold';
+      } else if (variance > 0) {
+        varianceEl.className = 'text-lg font-bold text-amber-400 mt-1';
+        statusText.className = 'text-[10px] text-amber-400 mt-0.5 font-semibold';
+        statusText.innerText = `Bank is higher by ฿${variance.toFixed(2)}`;
+      } else {
+        varianceEl.className = 'text-lg font-bold text-rose-400 mt-1';
+        statusText.className = 'text-[10px] text-rose-400 mt-0.5 font-semibold';
+        statusText.innerText = `Bank is lower by ฿${Math.abs(variance).toFixed(2)}`;
+      }
+    }
+
+    function downloadMonthlyStatement() {
+      const activeMonthInput = document.getElementById('active-month');
+      const activeMonthVal = activeMonthInput ? activeMonthInput.value : '';
+      if (!activeMonthVal) {
+        alert("Please select an active billing month first.");
+        return;
+      }
+
+      const { startStr, endStr } = getBillingWindow(activeMonthVal);
+      let beginningBalance = 0;
+      transactions.forEach(tx => {
+        if (tx.date && tx.date < startStr) {
+          if (tx.type === 'Share Contribution' || tx.type === 'Loan Repayment' || tx.type === 'Late Fee') {
+            beginningBalance += tx.amount;
+          } else if (tx.type === 'Member Loan' || tx.type === 'Non-Member Loan') {
+            beginningBalance -= tx.amount;
+          }
+        }
+      });
+
+      const windowTxs = transactions.filter(tx => tx.date >= startStr && tx.date <= endStr).sort((a,b) => a.date.localeCompare(b.date));
+      let totalInflow = 0;
+      let totalOutflow = 0;
+
+      let csvContent = `FUNDSQUAD CO-OP - OFFICIAL MONTHLY BANK STATEMENT\n`;
+      csvContent += `Billing Window:,${startStr} to ${endStr}\n`;
+      csvContent += `Generated On:,${new Date().toISOString().split('T')[0]}\n`;
+      csvContent += `---------------------------------------------------\n\n`;
+      csvContent += `Date,Account / Member ID,Transaction Type,Inflow (+),Outflow (-),Description / Guarantor\n`;
+      csvContent += `"${startStr}","SYSTEM","Beginning Balance","${beginningBalance.toFixed(2)}","0.00","Carried over from prior billing window"\n`;
+
+      windowTxs.forEach(tx => {
+        const isInflow = (tx.type === 'Share Contribution' || tx.type === 'Loan Repayment' || tx.type === 'Late Fee');
+        const inAmt = isInflow ? tx.amount.toFixed(2) : "0.00";
+        const outAmt = !isInflow ? tx.amount.toFixed(2) : "0.00";
+        
+        if (isInflow) totalInflow += tx.amount;
+        else totalOutflow += tx.amount;
+
+        const label = tx.memberName || tx.accId || '';
+        const notes = tx.guarantor ? `Guarantor: ${tx.guarantor}` : (tx.type);
+        csvContent += `"${tx.date}","${label}","${tx.type}","${inAmt}","${outAmt}","${notes}"\n`;
+      });
+
+      const endingBalance = beginningBalance + totalInflow - totalOutflow;
+      csvContent += `\n---------------------------------------------------\n`;
+      csvContent += `SUMMARY FOR BILLING WINDOW (${activeMonthVal})\n`;
+      csvContent += `Total Window Inflows (Available Loan Pool):,${totalInflow.toFixed(2)}\n`;
+      csvContent += `Total Window Outflows:,${totalOutflow.toFixed(2)}\n`;
+      csvContent += `Calculated Ending Balance:,${endingBalance.toFixed(2)}\n`;
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `FundSquad_Statement_${activeMonthVal}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast(`Statement for ${activeMonthVal} downloaded successfully!`);
+    }
+
+    function renderMemberTable() {
+      const tbody = document.getElementById('member-table-body');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const list = getSortedAccounts();
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-500">No member accounts registered yet.</td></tr>';
+        return;
+      }
+
+      list.forEach((acc, index) => {
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-800/30 transition">
+            <td class="p-3 font-semibold text-slate-500">${index + 1}.</td>
+            <td class="p-3 font-bold text-white">${acc.id}</td>
+            <td class="p-3">${acc.name}</td>
+            <td class="p-3 font-semibold text-emerald-400">฿${(acc.shares || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="p-3">
+              <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Active</span>
+            </td>
+            <td class="p-3 text-right">
+              <button onclick="editMemberInfo('${acc.id}')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1 rounded-lg transition border border-slate-700">Edit</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function renderSummaryTables() {
+      const accountTbody = document.getElementById('summary-account-table-body');
+      const memberTbody = document.getElementById('member-summary-table-body');
+      
+      if (accountTbody) accountTbody.innerHTML = '';
+      if (memberTbody) memberTbody.innerHTML = '';
+
+      const list = getSortedAccounts();
+      if (list.length === 0) {
+        if (accountTbody) accountTbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-500">No accounts registered.</td></tr>';
+        if (memberTbody) memberTbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-500">No registered members.</td></tr>';
+        return;
+      }
+
+      const activeMonthInput = document.getElementById('active-month');
+      const activeMonthVal = activeMonthInput ? activeMonthInput.value : '';
+      const paidMembersSet = new Set();
+      const paidLoansSet = new Set();
+
+      transactions.forEach(tx => {
+        if (isDateInBillingWindow(tx.date, activeMonthVal)) {
+          if (tx.type === 'Share Contribution' && tx.memberName) {
+            paidMembersSet.add(tx.memberName.trim().toLowerCase());
+          } else if (tx.type === 'Loan Repayment' && tx.accId) {
+            paidLoansSet.add(tx.accId);
+          }
+        }
+      });
+
+      const memberAggMap = {};
+
+      list.forEach((acc, index) => {
+        const memberNameKey = acc.name.trim().toLowerCase();
+        const isSharePaid = paidMembersSet.has(memberNameKey);
+
+        let loanDue = 0;
+        let isLoanPaid = false;
+
+        if (acc.loanBalance > 0) {
+          const terms = acc.loanTermMonths || 4;
+          const mPrincipal = acc.loanBalance / terms;
+          const mInterest = acc.loanBalance * (acc.loanRate || 0.03);
+          loanDue = mPrincipal + mInterest;
+          isLoanPaid = paidLoansSet.has(acc.id);
+        }
+
+        const shareDue = acc.monthlyShareDue || 2000;
+
+        if (accountTbody) {
+          accountTbody.innerHTML += `
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-3 font-semibold text-slate-500">${index + 1}.</td>
+              <td class="p-3 font-bold text-white">${acc.id}</td>
+              <td class="p-3">${acc.name}</td>
+              <td class="p-3">฿${shareDue.toLocaleString()}</td>
+              <td class="p-3">
+                <span class="px-2 py-0.5 text-xs font-semibold rounded-full ${isSharePaid ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">${isSharePaid ? 'Paid' : 'Pending'}</span>
+              </td>
+              <td class="p-3 font-medium text-amber-400">฿${loanDue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+              <td class="p-3">
+                ${acc.loanBalance > 0 ? `
+                  <span class="px-2 py-0.5 text-xs font-semibold rounded-full ${isLoanPaid ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">${isLoanPaid ? 'Paid' : 'Pending'}</span>
+                ` : '<span class="text-xs text-slate-500">No Loan</span>'}
+              </td>
+            </tr>
+          `;
+        }
+
+        const nameKey = acc.name.trim();
+        if (!memberAggMap[nameKey]) {
+          memberAggMap[nameKey] = { name: nameKey, accountsCount: 0, totalShareDue: 0, totalLoanDue: 0 };
+        }
+        memberAggMap[nameKey].accountsCount += 1;
+        memberAggMap[nameKey].totalShareDue += shareDue;
+        memberAggMap[nameKey].totalLoanDue += loanDue;
+      });
+
+      if (memberTbody) {
+        Object.values(memberAggMap).forEach((m, idx) => {
+          const combinedPayout = m.totalShareDue + m.totalLoanDue;
+          memberTbody.innerHTML += `
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-3 font-semibold text-slate-500">${idx + 1}.</td>
+              <td class="p-3 font-bold text-white">${m.name}</td>
+              <td class="p-3"><span class="px-2 py-0.5 text-xs font-medium bg-slate-800 rounded border border-slate-700">${m.accountsCount} Acc</span></td>
+              <td class="p-3">฿${m.totalShareDue.toLocaleString()}</td>
+              <td class="p-3 font-medium text-amber-400">฿${m.totalLoanDue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+              <td class="p-3 font-extrabold text-indigo-400 text-base">฿${combinedPayout.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            </tr>
+          `;
+        });
+      }
+    }
+
+    function renderPayoutsTable() {
+      const tbody = document.getElementById('payouts-table-body');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const list = getSortedAccounts();
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-500">No accounts registered.</td></tr>';
+        return;
+      }
+
+      list.forEach((acc, index) => {
+        const shares = acc.shares || 0;
+        const interest = acc.dividends || 0;
+        const total = shares + interest;
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-800/30 transition">
+            <td class="p-3 font-semibold text-slate-500">${index + 1}.</td>
+            <td class="p-3 font-bold text-white">${acc.id}</td>
+            <td class="p-3">${acc.name}</td>
+            <td class="p-3">฿${shares.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="p-3 font-medium text-indigo-400">฿${interest.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="p-3 font-extrabold text-white text-base">฿${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+          </tr>
+        `;
+      });
+    }
+
+    function renderLoansTable() {
+      const tbody = document.getElementById('loans-schedule-body');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const list = getSortedAccounts();
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" class="p-4 text-center text-slate-500">No accounts registered.</td></tr>';
+        return;
+      }
+
+      const activeMonthInput = document.getElementById('active-month');
+      const activeMonthVal = activeMonthInput ? activeMonthInput.value : '';
+      const paidLoansSet = new Set();
+      transactions.forEach(tx => {
+        if (isDateInBillingWindow(tx.date, activeMonthVal) && tx.type === 'Loan Repayment' && tx.accId) {
+          paidLoansSet.add(tx.accId);
+        }
+      });
+
+      list.forEach((acc, index) => {
+        const hasActiveLoan = acc.loanBalance > 0;
+        const terms = acc.loanTermMonths || 4;
+        const monthlyPrincipal = hasActiveLoan ? acc.loanBalance / terms : 0;
+        const monthlyInterest = hasActiveLoan ? acc.loanBalance * (acc.loanRate || 0.03) : 0;
+        const totalMonthlyDue = monthlyPrincipal + monthlyInterest;
+        const isPaid = paidLoansSet.has(acc.id);
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-800/30 transition">
+            <td class="p-2.5 font-semibold text-slate-500">${index + 1}.</td>
+            <td class="p-2.5 font-bold text-white">${acc.id}</td>
+            <td class="p-2.5">${acc.name}</td>
+            <td class="p-2.5 font-semibold text-slate-400">${hasActiveLoan ? `${terms} Mos` : '-'}</td>
+            <td class="p-2.5 font-semibold text-white">฿${acc.loanBalance.toLocaleString()}</td>
+            <td class="p-2.5">${hasActiveLoan ? `฿${monthlyPrincipal.toFixed(2)}` : '-'}</td>
+            <td class="p-2.5 text-amber-400">${hasActiveLoan ? `฿${monthlyInterest.toFixed(2)}` : '-'}</td>
+            <td class="p-2.5 font-bold text-indigo-400">${hasActiveLoan ? `฿${totalMonthlyDue.toFixed(2)}` : '-'}</td>
+            <td class="p-2.5 text-center">
+              ${hasActiveLoan ? `
+                <span class="px-2 py-0.5 text-xs font-semibold rounded-full ${isPaid ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">${isPaid ? 'PAID' : 'UNPAID'}</span>
+              ` : '<span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-800 text-slate-400 border border-slate-700">ELIGIBLE FOR LOAN</span>'}
+            </td>
+            <td class="p-2.5 text-right">
+              ${hasActiveLoan ? `
+                <button onclick="recordRepaymentPrompt('${acc.id}')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2 py-1 rounded-lg transition border border-slate-700">Repay</button>
+              ` : '<span class="text-xs text-emerald-400 font-semibold">Ready</span>'}
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function recordRepaymentPrompt(accId) {
+      const acc = accounts[accId];
+      if (!acc) return;
+      const terms = acc.loanTermMonths || 4;
+      const mPrincipal = acc.loanBalance / terms;
+      const mInterest = acc.loanBalance * (acc.loanRate || 0.03);
+      const totalDue = mPrincipal + mInterest;
+
+      const amtInput = prompt(`Record Loan Repayment for ${accId}:\nEnter repayment amount (THB):`, totalDue.toFixed(2));
+      if (amtInput === null) return;
+      const amt = parseFloat(amtInput);
+      if (isNaN(amt) || amt <= 0) {
+        alert("Invalid amount.");
+        return;
+      }
+
+      const activeMonthInput = document.getElementById('active-month');
+      const activeMonthVal = activeMonthInput ? activeMonthInput.value : '';
+      const defaultDate = activeMonthVal ? `${activeMonthVal}-05` : new Date().toISOString().split('T')[0];
+
+      const newTx = { accId: accId, memberName: acc.name, type: 'Loan Repayment', amount: amt, date: defaultDate, guarantor: '', termMonths: terms };
+      transactions.push(newTx);
+      applyTransactionEffects(newTx);
+      saveData();
+      refreshAllViews();
+      showToast(`Recorded repayment of ฿${amt.toFixed(2)} for ${accId}`);
+    }
+
+    function renderLogsTable() {
+      const tbody = document.getElementById('logs-table-body');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (transactions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-500">No transaction logs available.</td></tr>';
+        return;
+      }
+
+      transactions.slice().reverse().forEach((tx, revIndex) => {
+        const originalIndex = transactions.length - 1 - revIndex;
+        const displayLabel = tx.memberName ? `${tx.memberName} (Member Share)` : tx.accId;
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-800/30 transition">
+            <td class="p-3 text-slate-400">${tx.date}</td>
+            <td class="p-3 font-bold text-white">${displayLabel}</td>
+            <td class="p-3"><span class="px-2 py-0.5 text-xs font-medium bg-slate-800 rounded border border-slate-700">${tx.type}</span></td>
+            <td class="p-3 font-semibold text-emerald-400">฿${tx.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+            <td class="p-3 text-slate-400">${tx.guarantor || '-'}</td>
+            <td class="p-3 text-right space-x-1">
+              <button onclick="editTransaction(${originalIndex})" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2 py-1 rounded-lg transition border border-slate-700">Edit</button>
+              <button onclick="deleteTransaction(${originalIndex})" class="bg-rose-950/60 hover:bg-rose-900 text-rose-300 text-xs px-2 py-1 rounded-lg transition border border-rose-800">Delete</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function calculateDividends() {
+      const accountsList = Object.values(accounts);
+      const totalAccountsCount = accountsList.length;
+      if (totalAccountsCount === 0) {
+        alert("No accounts registered to distribute interest.");
+        return;
+      }
+
+      let calculatedTotalInterest = 0;
+      transactions.forEach(tx => {
+        if (tx.type === 'Member Loan' || tx.type === 'Non-Member Loan') {
+          const rate = tx.type === 'Non-Member Loan' ? 0.05 : 0.03;
+          const term = tx.termMonths || 4;
+          calculatedTotalInterest += (tx.amount * rate * (term + 1)) / 2;
+        }
+      });
+
+      if (calculatedTotalInterest === 0) {
+        accountsList.forEach(acc => {
+          if (acc.loanBalance > 0) {
+            const rate = acc.loanRate || 0.03;
+            const term = acc.loanTermMonths || 4;
+            calculatedTotalInterest += (acc.loanBalance * rate * (term + 1)) / 2;
+          }
+        });
+      }
+
+      const interestPerAccount = calculatedTotalInterest / totalAccountsCount;
+      accountsList.forEach(acc => { acc.dividends = interestPerAccount; });
+
+      saveData();
+      refreshAllViews();
+      showToast(`Total Interest Pool: ฿${calculatedTotalInterest.toFixed(2)} distributed equally.`);
+    }
+
+    function generateGroupSummary() {
+      const list = getSortedAccounts();
+      const activeMonthInput = document.getElementById('active-month');
+      const activeMonthVal = activeMonthInput ? activeMonthInput.value : '';
+      let monthYearStr = "Current Period";
+      if (activeMonthVal) {
+        const [y, m] = activeMonthVal.split('-').map(Number);
+        monthYearStr = new Date(y, m - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+      }
+
+      let summary = `FUNDSQUAD CO-OP MONTHLY SUMMARY\nPeriod: ${monthYearStr}\nCollection Window: 25th Prev Mo to 5th Active Mo\n----------------------------------\n\n`;
+      if (list.length === 0) {
+        summary += "No registered accounts yet.";
+      } else {
+        summary += `MEMBER SHARE CONTRIBUTIONS\n`;
+        let totalSharesDue = 0;
+        list.forEach((acc, index) => {
+          const shareAmount = acc.monthlyShareDue || 2000;
+          totalSharesDue += shareAmount;
+          summary += `${index + 1}. ${acc.id} - ฿${shareAmount.toLocaleString()}\n`;
+        });
+
+        summary += `\n----------------------------------\n\nLOAN COLLECTIBLES\n`;
+        const activeLoanAccounts = list.filter(a => a.loanBalance > 0);
+        let totalLoanDue = 0;
+
+        if (activeLoanAccounts.length === 0) {
+          summary += `No active loan collectibles for this window.\n`;
+        } else {
+          activeLoanAccounts.forEach((acc, index) => {
+            const terms = acc.loanTermMonths || 4;
+            const mPrincipal = acc.loanBalance / terms;
+            const mInterest = acc.loanBalance * (acc.loanRate || 0.03);
+            const loanPayment = mPrincipal + mInterest;
+            totalLoanDue += loanPayment;
+            summary += `${index + 1}. ${acc.id}: ฿${loanPayment.toFixed(2)}\n`;
+          });
+        }
+
+        const grandTotal = totalSharesDue + totalLoanDue;
+        summary += `\n----------------------------------\nTOTAL BREAKDOWN\n`;
+        summary += `• Share Contributions: ฿${totalSharesDue.toFixed(2)}\n`;
+        summary += `• Loan Collectibles: ฿${totalLoanDue.toFixed(2)}\n`;
+        summary += `• Grand Total Collection: ฿${grandTotal.toFixed(2)}\n`;
+      }
+
+      const summaryBox = document.getElementById('group-summary-text');
+      if (summaryBox) summaryBox.value = summary;
+    }
+
+    function copyGroupSummary() {
+      const summaryBox = document.getElementById('group-summary-text');
+      if (!summaryBox) return;
+      summaryBox.select();
+      navigator.clipboard.writeText(summaryBox.value);
+      showToast('Group notice copied to clipboard!');
+    }
+
+    function updateFormDropdowns() {
+      const memberSelect = document.getElementById('tx-member');
+      if (memberSelect) {
+        const currentMemberVal = memberSelect.value;
+        memberSelect.innerHTML = '<option value="">-- Select Member --</option>';
+        getUniqueMemberNames().forEach(name => {
+          memberSelect.innerHTML += `<option value="${name}">${name}</option>`;
+        });
+        if (currentMemberVal) memberSelect.value = currentMemberVal;
+      }
+
+      const accSelect = document.getElementById('tx-account');
+      if (accSelect) {
+        const currentAccVal = accSelect.value;
+        accSelect.innerHTML = '<option value="">-- Select Account --</option>';
+        getSortedAccounts().forEach(acc => {
+          accSelect.innerHTML += `<option value="${acc.id}">${acc.id} - ${acc.name}</option>`;
+        });
+        if (currentAccVal && accounts[currentAccVal]) accSelect.value = currentAccVal;
+      }
+    }
+
+    function refreshAllViews() {
+      const activeMonthInput = document.getElementById('active-month');
+      const activeMonthVal = activeMonthInput ? activeMonthInput.value : '';
+      if (activeMonthVal) {
+        const { startStr, endStr } = getBillingWindow(activeMonthVal);
+        const displaySpan = document.getElementById('active-display-span');
+        if (displaySpan) displaySpan.innerText = `Window: ${startStr} to ${endStr}`;
+      }
+
+      updateFormDropdowns();
+      toggleTxFields();
+      renderDashboard();
+      renderMemberTable();
+      renderSummaryTables();
+      renderPayoutsTable();
+      renderLoansTable();
+      renderLogsTable();
+      generateGroupSummary();
+    }
+  </script>
+</body>
+</html>
