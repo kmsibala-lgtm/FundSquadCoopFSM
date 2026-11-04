@@ -22,6 +22,11 @@ const ItemSchema = new mongoose.Schema({
 });
 const Item = mongoose.model('Item', ItemSchema);
 
+// Explicit Root Route (Fixes Cannot GET /)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // API Routes
 app.get('/api/items', async (req, res) => {
   try {
