@@ -241,7 +241,7 @@
         </div>
       </div>
 
-      <!-- NEW TAB: MEMBERS DIRECTORY -->
+      <!-- MEMBERS DIRECTORY TAB -->
       <div id="tab-directory" class="tab-content hidden space-y-6">
         <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
           <div class="p-4 border-b border-slate-800 flex justify-between items-center">
@@ -498,10 +498,11 @@
           <div class="flex justify-between items-center">
             <div>
               <h2 class="font-bold text-base text-white">Group Chat Notice Generator</h2>
+              <p class="text-xs text-slate-400">Verified logged payments are automatically marked with [✔ PAID].</p>
             </div>
             <button onclick="copyGroupSummary()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">Copy Notice</button>
           </div>
-          <textarea id="group-summary-text" rows="14" readonly class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs font-mono text-slate-300 focus:outline-none"></textarea>
+          <textarea id="group-summary-text" rows="16" readonly class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs font-mono text-slate-300 focus:outline-none"></textarea>
         </div>
       </div>
 
@@ -747,7 +748,6 @@
       });
     }
 
-    // BATCH EDIT MEMBER NAME ACROSS ALL ACCOUNTS & TRANSACTIONS
     function editEntireMemberName(oldMemberName) {
       if (!oldMemberName) return;
       const newName = prompt(`Update Full Name for member "${oldMemberName}":`, oldMemberName);
@@ -755,14 +755,12 @@
       const trimmed = newName.trim();
       if (!trimmed || trimmed === oldMemberName) return;
 
-      // 1. Update accounts
       Object.values(accounts).forEach(acc => {
         if (acc.name && acc.name.trim().toLowerCase() === oldMemberName.trim().toLowerCase()) {
           acc.name = trimmed;
         }
       });
 
-      // 2. Update transactions
       transactions.forEach(tx => {
         if (tx.memberName && tx.memberName.trim().toLowerCase() === oldMemberName.trim().toLowerCase()) {
           tx.memberName = trimmed;
@@ -772,10 +770,9 @@
       saveData();
       closeMemberModal();
       refreshAllViews();
-      showToast(`Member name successfully updated to "${trimmed}" across all accounts!`);
+      showToast(`Member name updated to "${trimmed}" across all accounts!`);
     }
 
-    // RENDER MEMBERS DIRECTORY TAB
     function renderMembersDirectory() {
       const tbody = document.getElementById('directory-table-body');
       const badge = document.getElementById('directory-count-badge');
@@ -815,7 +812,6 @@
       });
     }
 
-    // OPEN MEMBER DETAIL MODAL
     function openMemberModal(memberName) {
       const modal = document.getElementById('member-detail-modal');
       const nameEl = document.getElementById('modal-member-name');
@@ -833,7 +829,6 @@
       subEl.innerText = `${memberAccs.length} registered account(s) under this member`;
       editBtn.setAttribute('onclick', `editEntireMemberName('${memberName}')`);
 
-      // Accounts Breakdown
       accListEl.innerHTML = '';
       memberAccs.forEach(acc => {
         accListEl.innerHTML += `
@@ -847,7 +842,6 @@
         `;
       });
 
-      // Loans Breakdown
       loansListEl.innerHTML = '';
       const loanAccs = memberAccs.filter(a => (a.loanBalance || 0) > 0);
       if (loanAccs.length === 0) {
@@ -871,13 +865,12 @@
         });
       }
 
-      // Share Contribution Months History
       shareMonthsEl.innerHTML = '';
       const paidShareMonths = new Set();
       transactions.forEach(tx => {
         if (tx.type === 'Share Contribution' && tx.memberName && tx.memberName.trim().toLowerCase() === memberName.toLowerCase()) {
           if (tx.date) {
-            paidShareMonths.add(tx.date.substring(0, 7)); // YYYY-MM
+            paidShareMonths.add(tx.date.substring(0, 7));
           }
         }
       });
@@ -1687,6 +1680,7 @@
       showToast(`Total Interest Pool: ฿${calculatedTotalInterest.toFixed(2)} distributed equally.`);
     }
 
+    // AUTOMATIC CHECKMARKS ON NOTICE GENERATOR FOR VERIFIED PAYMENTS
     function generateGroupSummary() {
       const list = getSortedAccounts();
       const activeMonthInput = document.getElementById('active-month');
@@ -1697,6 +1691,19 @@
         monthYearStr = new Date(y, m - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
       }
 
+      // Collect paid accounts/members in current billing window
+      const paidShareMembersSet = new Set();
+      const paidLoanAccountsSet = new Set();
+      transactions.forEach(tx => {
+        if (isDateInBillingWindow(tx.date, activeMonthVal)) {
+          if (tx.type === 'Share Contribution' && tx.memberName) {
+            paidShareMembersSet.add(tx.memberName.trim().toLowerCase());
+          } else if (tx.type === 'Loan Repayment' && tx.accId) {
+            paidLoanAccountsSet.add(tx.accId);
+          }
+        }
+      });
+
       let summary = `FUNDSQUAD CO-OP MONTHLY SUMMARY\nPeriod: ${monthYearStr}\nCollection Window: 25th Prev Mo to 5th Active Mo\n----------------------------------\n\n`;
       if (list.length === 0) {
         summary += "No registered accounts yet.";
@@ -1706,7 +1713,9 @@
         list.forEach((acc, index) => {
           const shareAmount = acc.monthlyShareDue || 2000;
           totalSharesDue += shareAmount;
-          summary += `${index + 1}. ${acc.id} - ฿${shareAmount.toLocaleString()}\n`;
+          const isPaid = paidShareMembersSet.has(acc.name.trim().toLowerCase());
+          const checkMark = isPaid ? "[✔ PAID]" : "[ ] PENDING";
+          summary += `${index + 1}. ${acc.id} (${acc.name}) - ฿${shareAmount.toLocaleString()} ${checkMark}\n`;
         });
 
         summary += `\n----------------------------------\n\nLOAN COLLECTIBLES\n`;
@@ -1722,7 +1731,10 @@
             const mInterest = acc.loanBalance * (acc.loanRate || 0.03);
             const loanPayment = mPrincipal + mInterest;
             totalLoanDue += loanPayment;
-            summary += `${index + 1}. ${acc.id}: ฿${loanPayment.toFixed(2)}\n`;
+
+            const isPaid = paidLoanAccountsSet.has(acc.id);
+            const checkMark = isPaid ? "[✔ PAID]" : "[ ] PENDING";
+            summary += `${index + 1}. ${acc.id} (${acc.name}): ฿${loanPayment.toFixed(2)} ${checkMark}\n`;
           });
         }
 
