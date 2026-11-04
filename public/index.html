@@ -37,8 +37,11 @@
         <button id="btn-tab-dash" onclick="switchTab('tab-dash')" class="tab-btn w-full text-left bg-indigo-600 text-white px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2.5">
           <span>📊</span> Dashboard
         </button>
+        <button id="btn-tab-directory" onclick="switchTab('tab-directory')" class="tab-btn w-full text-left text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2.5">
+          <span>👥</span> Members Directory
+        </button>
         <button id="btn-tab-members" onclick="switchTab('tab-members')" class="tab-btn w-full text-left text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2.5">
-          <span>👥</span> Members & Accounts
+          <span>💳</span> Accounts Directory
         </button>
         <button id="btn-tab-summary" onclick="switchTab('tab-summary')" class="tab-btn w-full text-left text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2.5">
           <span>📅</span> Monthly Summary
@@ -47,7 +50,7 @@
           <span>💰</span> Payout Calculations
         </button>
         <button id="btn-tab-loans" onclick="switchTab('tab-loans')" class="tab-btn w-full text-left text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2.5">
-          <span>💳</span> Active Loans
+          <span>💵</span> Active Loans
         </button>
         <button id="btn-tab-logs" onclick="switchTab('tab-logs')" class="tab-btn w-full text-left text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2.5">
           <span>📝</span> Transaction Logs
@@ -77,6 +80,46 @@
     </div>
 
     <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+
+    <!-- MEMBER DETAILS MODAL -->
+    <div id="member-detail-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6 shadow-2xl">
+        <div class="flex justify-between items-start border-b border-slate-800 pb-4">
+          <div>
+            <h3 id="modal-member-name" class="text-xl font-bold text-white">Member Details</h3>
+            <p id="modal-member-sub" class="text-xs text-slate-400">Individual Member Overview & Account Breakdown</p>
+          </div>
+          <button onclick="closeMemberModal()" class="text-slate-400 hover:text-white text-lg font-bold">✕</button>
+        </div>
+
+        <!-- Accounts owned -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Associated Accounts & Shares</h4>
+          <div id="modal-accounts-list" class="space-y-2"></div>
+        </div>
+
+        <!-- Active Loans -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Loans & Repayments</h4>
+          <div id="modal-loans-list" class="space-y-2"></div>
+        </div>
+
+        <!-- Monthly Shares Paid History -->
+        <div class="space-y-3">
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Share Contributions History (By Billing Cycle)</h4>
+          <div id="modal-share-months" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <div class="flex justify-between pt-4 border-t border-slate-800">
+          <button id="modal-edit-btn" onclick="" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-4 py-2 rounded-xl transition">
+            ✏️ Edit Member Name
+          </button>
+          <button onclick="closeMemberModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-4 py-2 rounded-xl border border-slate-700">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
 
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
@@ -198,7 +241,35 @@
         </div>
       </div>
 
-      <!-- TAB 2: MEMBERS & ACCOUNTS -->
+      <!-- NEW TAB: MEMBERS DIRECTORY -->
+      <div id="tab-directory" class="tab-content hidden space-y-6">
+        <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
+          <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+            <div>
+              <h2 class="font-bold text-base text-white">Unique Members Roster</h2>
+              <p class="text-xs text-slate-400">Click a member's name to view full account breakdown, active loans, and payment history.</p>
+            </div>
+            <span id="directory-count-badge" class="text-xs font-semibold px-2.5 py-1 bg-slate-800 text-indigo-400 rounded-lg border border-slate-700">0 Members</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-300">
+              <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                <tr>
+                  <th class="p-3">#</th>
+                  <th class="p-3">Member Name</th>
+                  <th class="p-3">Accounts Owned</th>
+                  <th class="p-3">Total Accumulated Shares</th>
+                  <th class="p-3">Active Loan Status</th>
+                  <th class="p-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="directory-table-body" class="divide-y divide-slate-800/50"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: ACCOUNTS DIRECTORY -->
       <div id="tab-members" class="tab-content hidden space-y-6">
         <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
           <h2 class="font-bold text-base text-white">Register Member & Generate Accounts</h2>
@@ -221,7 +292,7 @@
 
         <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
           <div class="p-4 border-b border-slate-800 flex justify-between items-center">
-            <h2 class="font-bold text-base text-white">Registered Accounts Directory</h2>
+            <h2 class="font-bold text-base text-white">Registered Accounts Breakdown</h2>
             <span class="text-xs text-slate-400">Sequence, Member ID, Full Name, Shares & Management</span>
           </div>
           <div class="overflow-x-auto">
@@ -676,6 +747,163 @@
       });
     }
 
+    // BATCH EDIT MEMBER NAME ACROSS ALL ACCOUNTS & TRANSACTIONS
+    function editEntireMemberName(oldMemberName) {
+      if (!oldMemberName) return;
+      const newName = prompt(`Update Full Name for member "${oldMemberName}":`, oldMemberName);
+      if (newName === null) return;
+      const trimmed = newName.trim();
+      if (!trimmed || trimmed === oldMemberName) return;
+
+      // 1. Update accounts
+      Object.values(accounts).forEach(acc => {
+        if (acc.name && acc.name.trim().toLowerCase() === oldMemberName.trim().toLowerCase()) {
+          acc.name = trimmed;
+        }
+      });
+
+      // 2. Update transactions
+      transactions.forEach(tx => {
+        if (tx.memberName && tx.memberName.trim().toLowerCase() === oldMemberName.trim().toLowerCase()) {
+          tx.memberName = trimmed;
+        }
+      });
+
+      saveData();
+      closeMemberModal();
+      refreshAllViews();
+      showToast(`Member name successfully updated to "${trimmed}" across all accounts!`);
+    }
+
+    // RENDER MEMBERS DIRECTORY TAB
+    function renderMembersDirectory() {
+      const tbody = document.getElementById('directory-table-body');
+      const badge = document.getElementById('directory-count-badge');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      const uniqueNames = getUniqueMemberNames();
+      if (badge) badge.innerText = `${uniqueNames.length} Members`;
+
+      if (uniqueNames.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-500">No members registered yet.</td></tr>';
+        return;
+      }
+
+      uniqueNames.forEach((name, idx) => {
+        const memberAccs = Object.values(accounts).filter(a => a.name && a.name.trim().toLowerCase() === name.toLowerCase());
+        const totalShares = memberAccs.reduce((sum, a) => sum + (a.shares || 0), 0);
+        const activeLoans = memberAccs.filter(a => (a.loanBalance || 0) > 0);
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-800/30 transition">
+            <td class="p-3 font-semibold text-slate-500">${idx + 1}.</td>
+            <td class="p-3 font-bold text-indigo-400 cursor-pointer hover:underline" onclick="openMemberModal('${name}')">${name}</td>
+            <td class="p-3"><span class="px-2 py-0.5 text-xs font-medium bg-slate-800 rounded border border-slate-700 text-slate-200">${memberAccs.length} Account(s)</span></td>
+            <td class="p-3 font-semibold text-emerald-400">฿${totalShares.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+            <td class="p-3">
+              ${activeLoans.length > 0 ? 
+                `<span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">${activeLoans.length} Active Loan(s)</span>` : 
+                `<span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">No Active Loans</span>`}
+            </td>
+            <td class="p-3 text-right space-x-2">
+              <button onclick="openMemberModal('${name}')" class="bg-indigo-600/80 hover:bg-indigo-500 text-white text-xs px-2.5 py-1 rounded-lg transition">View Details</button>
+              <button onclick="editEntireMemberName('${name}')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1 rounded-lg transition border border-slate-700">Edit Name</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // OPEN MEMBER DETAIL MODAL
+    function openMemberModal(memberName) {
+      const modal = document.getElementById('member-detail-modal');
+      const nameEl = document.getElementById('modal-member-name');
+      const subEl = document.getElementById('modal-member-sub');
+      const accListEl = document.getElementById('modal-accounts-list');
+      const loansListEl = document.getElementById('modal-loans-list');
+      const shareMonthsEl = document.getElementById('modal-share-months');
+      const editBtn = document.getElementById('modal-edit-btn');
+
+      if (!modal) return;
+
+      const memberAccs = Object.values(accounts).filter(a => a.name && a.name.trim().toLowerCase() === memberName.toLowerCase());
+      
+      nameEl.innerText = memberName;
+      subEl.innerText = `${memberAccs.length} registered account(s) under this member`;
+      editBtn.setAttribute('onclick', `editEntireMemberName('${memberName}')`);
+
+      // Accounts Breakdown
+      accListEl.innerHTML = '';
+      memberAccs.forEach(acc => {
+        accListEl.innerHTML += `
+          <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+            <div>
+              <span class="font-bold text-white">${acc.id}</span>
+              <span class="text-slate-400 ml-2">(Monthly Share: ฿${(acc.monthlyShareDue || 2000).toLocaleString()})</span>
+            </div>
+            <span class="font-semibold text-emerald-400">Accumulated Shares: ฿${(acc.shares || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+          </div>
+        `;
+      });
+
+      // Loans Breakdown
+      loansListEl.innerHTML = '';
+      const loanAccs = memberAccs.filter(a => (a.loanBalance || 0) > 0);
+      if (loanAccs.length === 0) {
+        loansListEl.innerHTML = `<div class="text-xs text-slate-500 italic">No active loan balances for this member.</div>`;
+      } else {
+        loanAccs.forEach(acc => {
+          const terms = acc.loanTermMonths || 4;
+          const mPrincipal = acc.loanBalance / terms;
+          const mInterest = acc.loanBalance * (acc.loanRate || 0.03);
+          const totalDue = mPrincipal + mInterest;
+
+          loansListEl.innerHTML += `
+            <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800 flex justify-between items-center text-xs">
+              <div>
+                <span class="font-bold text-amber-400">${acc.id}</span>
+                <span class="text-slate-400 ml-2">Principal Bal: ฿${acc.loanBalance.toLocaleString()}</span>
+              </div>
+              <span class="font-semibold text-indigo-400">Monthly Due: ฿${totalDue.toFixed(2)}</span>
+            </div>
+          `;
+        });
+      }
+
+      // Share Contribution Months History
+      shareMonthsEl.innerHTML = '';
+      const paidShareMonths = new Set();
+      transactions.forEach(tx => {
+        if (tx.type === 'Share Contribution' && tx.memberName && tx.memberName.trim().toLowerCase() === memberName.toLowerCase()) {
+          if (tx.date) {
+            paidShareMonths.add(tx.date.substring(0, 7)); // YYYY-MM
+          }
+        }
+      });
+
+      if (paidShareMonths.size === 0) {
+        shareMonthsEl.innerHTML = `<div class="text-xs text-slate-500 italic">No recorded share contributions yet.</div>`;
+      } else {
+        Array.from(paidShareMonths).sort().forEach(monthStr => {
+          const [y, m] = monthStr.split('-').map(Number);
+          const monthLabel = new Date(y, m - 1, 1).toLocaleString('default', { month: 'short', year: 'numeric' });
+          shareMonthsEl.innerHTML += `
+            <span class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+              <span>✔</span> ${monthLabel}
+            </span>
+          `;
+        });
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeMemberModal() {
+      const modal = document.getElementById('member-detail-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
     const memberForm = document.getElementById('member-form');
     if (memberForm) {
       memberForm.addEventListener('submit', (e) => {
@@ -749,11 +977,9 @@
           return;
         }
 
-        // Migrate account under new Member ID key
         accounts[trimmedId] = { ...acc, id: trimmedId };
         delete accounts[accId];
 
-        // Update all existing transactions pointing to old Member ID
         transactions.forEach(tx => {
           if (tx.accId === accId) {
             tx.accId = trimmedId;
@@ -1179,7 +1405,7 @@
           <tr class="hover:bg-slate-800/30 transition">
             <td class="p-3 font-semibold text-slate-500">${index + 1}.</td>
             <td class="p-3 font-bold text-white">${acc.id}</td>
-            <td class="p-3">${acc.name}</td>
+            <td class="p-3 font-medium text-indigo-400 cursor-pointer hover:underline" onclick="openMemberModal('${acc.name}')">${acc.name}</td>
             <td class="p-3 font-semibold text-emerald-400">฿${(acc.shares || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td class="p-3">
               <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Active</span>
@@ -1245,7 +1471,7 @@
             <tr class="hover:bg-slate-800/30 transition">
               <td class="p-3 font-semibold text-slate-500">${index + 1}.</td>
               <td class="p-3 font-bold text-white">${acc.id}</td>
-              <td class="p-3">${acc.name}</td>
+              <td class="p-3 font-medium text-indigo-400 cursor-pointer hover:underline" onclick="openMemberModal('${acc.name}')">${acc.name}</td>
               <td class="p-3">฿${shareDue.toLocaleString()}</td>
               <td class="p-3">
                 <span class="px-2 py-0.5 text-xs font-semibold rounded-full ${isSharePaid ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">${isSharePaid ? 'Paid' : 'Pending'}</span>
@@ -1275,7 +1501,7 @@
           memberTbody.innerHTML += `
             <tr class="hover:bg-slate-800/30 transition">
               <td class="p-3 font-semibold text-slate-500">${idx + 1}.</td>
-              <td class="p-3 font-bold text-white">${m.name}</td>
+              <td class="p-3 font-bold text-indigo-400 cursor-pointer hover:underline" onclick="openMemberModal('${m.name}')">${m.name}</td>
               <td class="p-3"><span class="px-2 py-0.5 text-xs font-medium bg-slate-800 rounded border border-slate-700">${m.accountsCount} Acc</span></td>
               <td class="p-3">฿${m.totalShareDue.toLocaleString()}</td>
               <td class="p-3 font-medium text-amber-400">฿${m.totalLoanDue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
@@ -1306,7 +1532,7 @@
           <tr class="hover:bg-slate-800/30 transition">
             <td class="p-3 font-semibold text-slate-500">${index + 1}.</td>
             <td class="p-3 font-bold text-white">${acc.id}</td>
-            <td class="p-3">${acc.name}</td>
+            <td class="p-3 font-medium text-indigo-400 cursor-pointer hover:underline" onclick="openMemberModal('${acc.name}')">${acc.name}</td>
             <td class="p-3">฿${shares.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td class="p-3 font-medium text-indigo-400">฿${interest.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td class="p-3 font-extrabold text-white text-base">฿${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
@@ -1347,7 +1573,7 @@
           <tr class="hover:bg-slate-800/30 transition">
             <td class="p-2.5 font-semibold text-slate-500">${index + 1}.</td>
             <td class="p-2.5 font-bold text-white">${acc.id}</td>
-            <td class="p-2.5">${acc.name}</td>
+            <td class="p-2.5 font-medium text-indigo-400 cursor-pointer hover:underline" onclick="openMemberModal('${acc.name}')">${acc.name}</td>
             <td class="p-2.5 font-semibold text-slate-400">${hasActiveLoan ? `${terms} Mos` : '-'}</td>
             <td class="p-2.5 font-semibold text-white">฿${acc.loanBalance.toLocaleString()}</td>
             <td class="p-2.5">${hasActiveLoan ? `฿${monthlyPrincipal.toFixed(2)}` : '-'}</td>
@@ -1553,6 +1779,7 @@
       updateFormDropdowns();
       toggleTxFields();
       renderDashboard();
+      renderMembersDirectory();
       renderMemberTable();
       renderSummaryTables();
       renderPayoutsTable();
