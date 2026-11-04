@@ -1,14 +1,9 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/server.js" }
-  ]
-    }
-  ],
-  "routes": [
     {
-      "src": "/(.*)",
-      "dest": "server.js"
+      "source": "/(.*)",
+      "destination": "/server.js"
     }
   ]
 }
