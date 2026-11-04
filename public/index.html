@@ -10,410 +10,432 @@
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen antialiased flex flex-col">
+<body class="bg-slate-950 text-slate-100 min-h-screen antialiased flex flex-col md:flex-row">
 
-  <!-- Header Navigation -->
-  <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-      <div class="flex items-center gap-3">
+  <!-- Left Sidebar Navigation -->
+  <aside class="w-full md:w-64 bg-slate-900 border-r border-slate-800 flex-shrink-0 flex flex-col justify-between p-4 sticky top-0 md:h-screen z-50">
+    <div class="space-y-6">
+      <!-- Co-Op Brand Header -->
+      <div class="flex items-center gap-3 px-2 py-1">
         <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-indigo-500/20">
           FS
         </div>
         <div>
-          <h1 class="font-bold text-lg leading-tight text-white">FundSquad Co-Op</h1>
-          <p class="text-xs text-slate-400">Financial Operations & Management</p>
+          <h1 class="font-bold text-base leading-tight text-white">FundSquad Co-Op</h1>
+          <p class="text-[11px] text-slate-400">Financial Management</p>
         </div>
       </div>
 
-      <div class="flex items-center gap-3">
-        <a href="https://docs.google.com/spreadsheets/d/1m7CPy8srcmMCjC98cEwx86an09_n5fn2hWUGR6L9AQ8/edit" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition shadow-lg shadow-emerald-600/20 flex items-center gap-1.5">
-          📊 Open Sheets Record
-        </a>
-        <button onclick="confirmResetCycle()" class="bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800 text-xs font-semibold px-3 py-1.5 rounded-xl transition">
-          ⚠️ Reset Cycle
+      <!-- Sync Status Badge -->
+      <div id="sync-status" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="sync-text">Connected</span>
+      </div>
+
+      <!-- Vertical Tabs -->
+      <nav class="space-y-1.5">
+        <button id="btn-tab-dash" onclick="switchTab('tab-dash')" class="tab-btn w-full text-left bg-indigo-600 text-white px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2.5">
+          <span>📊</span> Dashboard
         </button>
-        <div id="sync-status" class="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span id="sync-text">Connected</span>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <div id="sabbath-banner" class="hidden bg-amber-500/10 border-b border-amber-500/20 text-amber-300 text-xs text-center py-2 px-4 font-semibold">
-    ⚠️ Sabbath Observance Active (Friday 18:00 – Saturday 18:00). New financial transactions are disabled.
-  </div>
-
-  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
-
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-
-    <!-- Global Period Selectors & Billing Window Config -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
-      <div class="flex flex-col gap-1.5">
-        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Cycle Month:</label>
-        <div class="flex items-center gap-2">
-          <input type="month" id="active-month" onchange="onActiveMonthChange()" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-indigo-500">
-        </div>
-        <span id="active-display-span" class="text-xs text-indigo-400 font-medium"></span>
-      </div>
-      <div class="flex flex-col gap-1.5">
-        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Strict Collection Window:</label>
-        <div class="text-xs text-slate-300 bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700/50 flex items-center justify-between">
-          <span>25th Prev Mo — 5th Active Mo</span>
-          <span class="text-emerald-400 font-semibold text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Manual Verification</span>
-        </div>
-      </div>
-      <div class="flex flex-col gap-1.5 md:items-end justify-center">
-        <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Cycle Start (12-Mo):</label>
-        <input type="month" id="cycle-start" onchange="updateCyclePeriod()" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-indigo-500 w-full sm:w-auto">
-        <span id="cycle-display-span" class="text-xs text-slate-400"></span>
-      </div>
+        <button id="btn-tab-members" onclick="switchTab('tab-members')" class="tab-btn w-full text-left text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2.5">
+          <span>👥</span> Members & Accounts
+        </button>
+        <button id="btn-tab-summary" onclick="switchTab('tab-summary')" class="tab-btn w-full text-left text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2.5">
+          <span>📅</span> Monthly Summary
+        </button>
+        <button id="btn-tab-payouts" onclick="switchTab('tab-payouts')" class="tab-btn w-full text-left text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2.5">
+          <span>💰</span> Payout Calculations
+        </button>
+        <button id="btn-tab-loans" onclick="switchTab('tab-loans')" class="tab-btn w-full text-left text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2.5">
+          <span>💳</span> Active Loans
+        </button>
+        <button id="btn-tab-logs" onclick="switchTab('tab-logs')" class="tab-btn w-full text-left text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2.5">
+          <span>📝</span> Transaction Logs
+        </button>
+        <button id="btn-tab-notice" onclick="switchTab('tab-notice')" class="tab-btn w-full text-left text-slate-400 hover:bg-slate-800/60 hover:text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2.5">
+          <span>📢</span> Notice Generator
+        </button>
+      </nav>
     </div>
 
-    <!-- Navigation Tabs -->
-    <div class="flex flex-wrap gap-2 border-b border-slate-800 pb-2">
-      <button id="btn-tab-dash" onclick="switchTab('tab-dash')" class="tab-btn bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">Dashboard</button>
-      <button id="btn-tab-members" onclick="switchTab('tab-members')" class="tab-btn text-slate-400 hover:bg-slate-900 px-4 py-2 rounded-xl text-sm font-semibold transition">Members & Accounts</button>
-      <button id="btn-tab-summary" onclick="switchTab('tab-summary')" class="tab-btn text-slate-400 hover:bg-slate-900 px-4 py-2 rounded-xl text-sm font-semibold transition">Monthly Summary</button>
-      <button id="btn-tab-payouts" onclick="switchTab('tab-payouts')" class="tab-btn text-slate-400 hover:bg-slate-900 px-4 py-2 rounded-xl text-sm font-semibold transition">Payout Calculations</button>
-      <button id="btn-tab-loans" onclick="switchTab('tab-loans')" class="tab-btn text-slate-400 hover:bg-slate-900 px-4 py-2 rounded-xl text-sm font-semibold transition">Active Loans</button>
-      <button id="btn-tab-logs" onclick="switchTab('tab-logs')" class="tab-btn text-slate-400 hover:bg-slate-900 px-4 py-2 rounded-xl text-sm font-semibold transition">Transaction Logs</button>
-      <button id="btn-tab-notice" onclick="switchTab('tab-notice')" class="tab-btn text-slate-400 hover:bg-slate-900 px-4 py-2 rounded-xl text-sm font-semibold transition">Notice Generator</button>
+    <!-- Sidebar Footer Actions -->
+    <div class="pt-4 border-t border-slate-800 space-y-2">
+      <a href="https://docs.google.com/spreadsheets/d/1m7CPy8srcmMCjC98cEwx86an09_n5fn2hWUGR6L9AQ8/edit" target="_blank" class="w-full bg-emerald-600/90 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-xl transition shadow-md flex items-center justify-center gap-1.5">
+        📊 Open Sheets Record
+      </a>
+      <button onclick="confirmResetCycle()" class="w-full bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/60 text-xs font-semibold px-3 py-1.5 rounded-xl transition text-center">
+        ⚠️ Reset Cycle
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <div class="flex-1 flex flex-col min-w-0">
+
+    <div id="sabbath-banner" class="hidden bg-amber-500/10 border-b border-amber-500/20 text-amber-300 text-xs text-center py-2 px-4 font-semibold">
+      ⚠️ Sabbath Observance Active (Friday 18:00 – Saturday 18:00). New financial transactions are disabled.
     </div>
 
-    <!-- TAB 1: DASHBOARD -->
-    <div id="tab-dash" class="tab-content space-y-6">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-2">
-          <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Total Accumulated Shares</p>
-          <h3 id="dash-total-shares" class="text-2xl font-bold text-white">฿0.00</h3>
-          <p class="text-xs text-emerald-400">Total member equity balance (Paid)</p>
-        </div>
-        <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-2">
-          <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Total Active Loans</p>
-          <h3 id="dash-total-loans" class="text-2xl font-bold text-amber-400">฿0.00</h3>
-          <p class="text-xs text-amber-500/80">Outstanding loan principal</p>
-        </div>
-        <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-2">
-          <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Window Available Loan Pool</p>
-          <h3 id="dash-loan-pool" class="text-2xl font-bold text-indigo-400">฿0.00</h3>
-          <p class="text-xs text-slate-400">Available to loan out this window</p>
-        </div>
-        <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-2">
-          <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Window Cash Outflow</p>
-          <h3 id="dash-outflow" class="text-2xl font-bold text-rose-400">฿0.00</h3>
-          <p class="text-xs text-slate-400">Disbursed loans</p>
-        </div>
-      </div>
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
 
-      <!-- Bank Reconciliation & Monthly In-Out Ledger -->
-      <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-6">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
-          <div>
-            <h2 class="font-bold text-base text-white">Billing Window Balance & Bank Reconciliation</h2>
-            <p class="text-xs text-slate-400">Match ledger calculations with your bank statement for the active billing span (25th–5th)</p>
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+      <!-- Global Period Selectors & Billing Window Config -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Cycle Month:</label>
+          <div class="flex items-center gap-2">
+            <input type="month" id="active-month" onchange="onActiveMonthChange()" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-indigo-500">
           </div>
-          <div class="flex items-center gap-3">
-            <button onclick="downloadMonthlyStatement()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-2 rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center gap-1.5">
-              📥 Download Bank Statement (.CSV)
-            </button>
-            <div class="flex items-center gap-2">
-              <label class="text-xs text-slate-400 font-medium">Actual Bank Balance:</label>
-              <input type="number" id="bank-statement-input" oninput="updateBankReconciliation()" placeholder="0.00" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-white w-32 focus:outline-none focus:border-indigo-500">
+          <span id="active-display-span" class="text-xs text-indigo-400 font-medium"></span>
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Strict Collection Window:</label>
+          <div class="text-xs text-slate-300 bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700/50 flex items-center justify-between">
+            <span>25th Prev Mo — 5th Active Mo</span>
+            <span class="text-emerald-400 font-semibold text-[10px] bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Manual Verification</span>
+          </div>
+        </div>
+        <div class="flex flex-col gap-1.5 md:items-end justify-center">
+          <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Cycle Start (12-Mo):</label>
+          <input type="month" id="cycle-start" onchange="updateCyclePeriod()" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-indigo-500 w-full sm:w-auto">
+          <span id="cycle-display-span" class="text-xs text-slate-400"></span>
+        </div>
+      </div>
+
+      <!-- TAB 1: DASHBOARD -->
+      <div id="tab-dash" class="tab-content space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-2">
+            <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Total Accumulated Shares</p>
+            <h3 id="dash-total-shares" class="text-2xl font-bold text-white">฿0.00</h3>
+            <p class="text-xs text-emerald-400">Total member equity balance (Paid)</p>
+          </div>
+          <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-2">
+            <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Total Active Loans</p>
+            <h3 id="dash-total-loans" class="text-2xl font-bold text-amber-400">฿0.00</h3>
+            <p class="text-xs text-amber-500/80">Outstanding loan principal</p>
+          </div>
+          <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-2">
+            <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Window Available Loan Pool</p>
+            <h3 id="dash-loan-pool" class="text-2xl font-bold text-indigo-400">฿0.00</h3>
+            <p class="text-xs text-slate-400">Available to loan out this window</p>
+          </div>
+          <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-2">
+            <p class="text-xs text-slate-400 font-medium uppercase tracking-wider">Window Cash Outflow</p>
+            <h3 id="dash-outflow" class="text-2xl font-bold text-rose-400">฿0.00</h3>
+            <p class="text-xs text-slate-400">Disbursed loans</p>
+          </div>
+        </div>
+
+        <!-- Bank Reconciliation & Monthly In-Out Ledger -->
+        <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-6">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
+            <div>
+              <h2 class="font-bold text-base text-white">Billing Window Balance & Bank Reconciliation</h2>
+              <p class="text-xs text-slate-400">Match ledger calculations with your bank statement for the active billing span (25th–5th)</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <button onclick="downloadMonthlyStatement()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-2 rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center gap-1.5">
+                📥 Download Bank Statement (.CSV)
+              </button>
+              <div class="flex items-center gap-2">
+                <label class="text-xs text-slate-400 font-medium">Actual Bank Balance:</label>
+                <input type="number" id="bank-statement-input" oninput="updateBankReconciliation()" placeholder="0.00" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-sm text-white w-32 focus:outline-none focus:border-indigo-500">
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+              <p class="text-xs text-slate-400 uppercase font-semibold">Beginning Balance</p>
+              <p id="recon-beginning" class="text-lg font-bold text-white mt-1">฿0.00</p>
+              <p class="text-[10px] text-slate-500 mt-0.5">Carried over from prior windows</p>
+            </div>
+            <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+              <p class="text-xs text-emerald-400 uppercase font-semibold">Window Inflows (+)</p>
+              <p id="recon-inflow" class="text-lg font-bold text-emerald-400 mt-1">฿0.00</p>
+              <p class="text-[10px] text-slate-500 mt-0.5">Shares + Repayments + Fees</p>
+            </div>
+            <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+              <p class="text-xs text-rose-400 uppercase font-semibold">Window Outflows (-)</p>
+              <p id="recon-outflow" class="text-lg font-bold text-rose-400 mt-1">฿0.00</p>
+              <p class="text-[10px] text-slate-500 mt-0.5">Loan disbursements</p>
+            </div>
+            <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+              <p class="text-xs text-indigo-400 uppercase font-semibold">Calculated Ending Balance</p>
+              <p id="recon-ending" class="text-lg font-bold text-indigo-400 mt-1">฿0.00</p>
+              <p class="text-[10px] text-slate-500 mt-0.5">Expected cash on hand / bank</p>
+            </div>
+            <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
+              <p class="text-xs text-slate-400 uppercase font-semibold">Discrepancy / Variance</p>
+              <p id="recon-variance" class="text-lg font-bold text-white mt-1">฿0.00</p>
+              <p id="recon-status-text" class="text-[10px] text-slate-500 mt-0.5">Enter bank statement balance</p>
             </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-            <p class="text-xs text-slate-400 uppercase font-semibold">Beginning Balance</p>
-            <p id="recon-beginning" class="text-lg font-bold text-white mt-1">฿0.00</p>
-            <p class="text-[10px] text-slate-500 mt-0.5">Carried over from prior windows</p>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
+            <h2 class="font-bold text-base text-white">Net Cash Flow (Billing Window)</h2>
+            <div class="text-3xl font-extrabold text-indigo-400" id="dash-net-flow">฿0.00</div>
+            <p class="text-xs text-slate-400">Net liquidity change during the 25th-to-5th billing window.</p>
           </div>
-          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-            <p class="text-xs text-emerald-400 uppercase font-semibold">Window Inflows (+)</p>
-            <p id="recon-inflow" class="text-lg font-bold text-emerald-400 mt-1">฿0.00</p>
-            <p class="text-[10px] text-slate-500 mt-0.5">Shares + Repayments + Fees</p>
+          <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
+            <h2 class="font-bold text-base text-white">Total Active Accounts</h2>
+            <div class="text-3xl font-extrabold text-white" id="dash-acc-count">0</div>
+            <p class="text-xs text-slate-400">Registered member account instances receiving monthly share billing.</p>
           </div>
-          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-            <p class="text-xs text-rose-400 uppercase font-semibold">Window Outflows (-)</p>
-            <p id="recon-outflow" class="text-lg font-bold text-rose-400 mt-1">฿0.00</p>
-            <p class="text-[10px] text-slate-500 mt-0.5">Loan disbursements</p>
-          </div>
-          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-            <p class="text-xs text-indigo-400 uppercase font-semibold">Calculated Ending Balance</p>
-            <p id="recon-ending" class="text-lg font-bold text-indigo-400 mt-1">฿0.00</p>
-            <p class="text-[10px] text-slate-500 mt-0.5">Expected cash on hand / bank</p>
-          </div>
-          <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/80">
-            <p class="text-xs text-slate-400 uppercase font-semibold">Discrepancy / Variance</p>
-            <p id="recon-variance" class="text-lg font-bold text-white mt-1">฿0.00</p>
-            <p id="recon-status-text" class="text-[10px] text-slate-500 mt-0.5">Enter bank statement balance</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
-          <h2 class="font-bold text-base text-white">Net Cash Flow (Billing Window)</h2>
-          <div class="text-3xl font-extrabold text-indigo-400" id="dash-net-flow">฿0.00</div>
-          <p class="text-xs text-slate-400">Net liquidity change during the 25th-to-5th billing window.</p>
-        </div>
-        <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
-          <h2 class="font-bold text-base text-white">Total Active Accounts</h2>
-          <div class="text-3xl font-extrabold text-white" id="dash-acc-count">0</div>
-          <p class="text-xs text-slate-400">Registered member account instances receiving monthly share billing.</p>
-        </div>
-        <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4 flex flex-col justify-between">
-          <div>
-            <h2 class="font-bold text-base text-white">Cycle Interest Dividend Pool</h2>
-            <p class="text-xs text-slate-400 mt-1">Pool 100% of collected loan interest and distribute equally per account.</p>
-          </div>
-          <button onclick="calculateDividends()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20">
-            Calculate Cycle Interest Payout
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 2: MEMBERS & ACCOUNTS -->
-    <div id="tab-members" class="tab-content hidden space-y-6">
-      <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
-        <h2 class="font-bold text-base text-white">Register Member & Generate Accounts</h2>
-        <form id="member-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-xs text-slate-400 font-medium mb-1">Full Name</label>
-            <input type="text" id="member-name" required placeholder="e.g. Krystal May" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-xs text-slate-400 font-medium mb-1">Number of Accounts</label>
-            <input type="number" id="member-acc-count" min="1" max="5" value="1" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
-          </div>
-          <div class="flex items-end">
-            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm py-2 rounded-xl transition shadow-lg shadow-indigo-600/20">
-              Generate Accounts
+          <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4 flex flex-col justify-between">
+            <div>
+              <h2 class="font-bold text-base text-white">Cycle Interest Dividend Pool</h2>
+              <p class="text-xs text-slate-400 mt-1">Pool 100% of collected loan interest and distribute equally per account.</p>
+            </div>
+            <button onclick="calculateDividends()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20">
+              Calculate Cycle Interest Payout
             </button>
           </div>
-        </form>
-      </div>
-
-      <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
-        <div class="p-4 border-b border-slate-800 flex justify-between items-center">
-          <h2 class="font-bold text-base text-white">Registered Accounts Directory</h2>
-          <span class="text-xs text-slate-400">Sequence, Member ID, Full Name, Accumulated Shares & Status</span>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm text-slate-300">
-            <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
-              <tr>
-                <th class="p-3">#</th>
-                <th class="p-3">Member ID</th>
-                <th class="p-3">Member Full Name</th>
-                <th class="p-3">Accumulated Shares (Paid)</th>
-                <th class="p-3">Status</th>
-                <th class="p-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="member-table-body" class="divide-y divide-slate-800/50"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 3: MONTHLY SUMMARY -->
-    <div id="tab-summary" class="tab-content hidden space-y-6">
-      <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden space-y-2">
-        <div class="p-4 border-b border-slate-800">
-          <h2 class="font-bold text-base text-white">Individual Account Checklist & Status</h2>
-          <p class="text-xs text-slate-400">Separate breakdown of share contributions and loan collectibles per account for this billing window</p>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm text-slate-300">
-            <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
-              <tr>
-                <th class="p-3">#</th>
-                <th class="p-3">Account ID</th>
-                <th class="p-3">Member Name</th>
-                <th class="p-3">Share Due (THB)</th>
-                <th class="p-3">Share Status</th>
-                <th class="p-3">Loan Collectible (THB)</th>
-                <th class="p-3">Loan Status</th>
-              </tr>
-            </thead>
-            <tbody id="summary-account-table-body" class="divide-y divide-slate-800/50"></tbody>
-          </table>
         </div>
       </div>
 
-      <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden space-y-2">
-        <div class="p-4 border-b border-slate-800">
-          <h2 class="font-bold text-base text-white">Member Total Payment Summary (Monthly)</h2>
-          <p class="text-xs text-slate-400">Aggregated total amount due per member across all their registered accounts for the active month</p>
+      <!-- TAB 2: MEMBERS & ACCOUNTS -->
+      <div id="tab-members" class="tab-content hidden space-y-6">
+        <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
+          <h2 class="font-bold text-base text-white">Register Member & Generate Accounts</h2>
+          <form id="member-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs text-slate-400 font-medium mb-1">Full Name</label>
+              <input type="text" id="member-name" required placeholder="e.g. Krystal May" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 font-medium mb-1">Number of Accounts</label>
+              <input type="number" id="member-acc-count" min="1" max="5" value="1" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+            </div>
+            <div class="flex items-end">
+              <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm py-2 rounded-xl transition shadow-lg shadow-indigo-600/20">
+                Generate Accounts
+              </button>
+            </div>
+          </form>
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm text-slate-300">
-            <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
-              <tr>
-                <th class="p-3">#</th>
-                <th class="p-3">Member Name</th>
-                <th class="p-3">Accounts</th>
-                <th class="p-3">Total Shares Due</th>
-                <th class="p-3">Total Loans Due</th>
-                <th class="p-3 font-bold text-indigo-400">Combined Total Payout</th>
-              </tr>
-            </thead>
-            <tbody id="member-summary-table-body" class="divide-y divide-slate-800/50"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
 
-    <!-- TAB 3.5: PAYOUT CALCULATIONS -->
-    <div id="tab-payouts" class="tab-content hidden space-y-6">
-      <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
-        <div class="flex justify-between items-center">
-          <div>
-            <h2 class="font-bold text-base text-white">End-of-Cycle Payout Calculations</h2>
-            <p class="text-xs text-slate-400">Track projected total returns per account</p>
+        <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
+          <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+            <h2 class="font-bold text-base text-white">Registered Accounts Directory</h2>
+            <span class="text-xs text-slate-400">Sequence, Member ID, Full Name, Shares & Management</span>
           </div>
-          <button onclick="calculateDividends()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">Recompute</button>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-300">
+              <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                <tr>
+                  <th class="p-3">#</th>
+                  <th class="p-3">Member ID</th>
+                  <th class="p-3">Member Full Name</th>
+                  <th class="p-3">Accumulated Shares (Paid)</th>
+                  <th class="p-3">Status</th>
+                  <th class="p-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="member-table-body" class="divide-y divide-slate-800/50"></tbody>
+            </table>
+          </div>
         </div>
-      </div>
-      <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm text-slate-300">
-            <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
-              <tr>
-                <th class="p-3">#</th>
-                <th class="p-3">Account ID</th>
-                <th class="p-3">Member Name</th>
-                <th class="p-3">Accumulated Shares</th>
-                <th class="p-3">Cycle Interest Share</th>
-                <th class="p-3 font-bold text-indigo-400">Total Projected Payout</th>
-              </tr>
-            </thead>
-            <tbody id="payouts-table-body" class="divide-y divide-slate-800/50"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 4: ACTIVE LOANS -->
-    <div id="tab-loans" class="tab-content hidden space-y-6">
-      <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
-        <div class="p-4 border-b border-slate-800">
-          <h2 class="font-bold text-base text-white">Active Loan Schedule Monitor</h2>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm text-slate-300">
-            <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
-              <tr>
-                <th class="p-2.5">#</th>
-                <th class="p-2.5">Account ID</th>
-                <th class="p-2.5">Name</th>
-                <th class="p-2.5">Term</th>
-                <th class="p-2.5">Balance</th>
-                <th class="p-2.5">Principal/Mo</th>
-                <th class="p-2.5">Interest/Mo</th>
-                <th class="p-2.5">Total Monthly Due</th>
-                <th class="p-2.5 text-center">Status</th>
-                <th class="p-2.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="loans-schedule-body" class="divide-y divide-slate-800/50"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 5: TRANSACTION LOGS -->
-    <div id="tab-logs" class="tab-content hidden space-y-6">
-      <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
-        <div class="flex justify-between items-center">
-          <h2 id="tx-form-title" class="font-bold text-base text-white">Record Transaction</h2>
-          <button id="tx-cancel-edit-btn" onclick="cancelTxEdit()" class="hidden text-xs text-rose-400 hover:underline">Cancel Edit</button>
-        </div>
-        <form id="tx-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <input type="hidden" id="edit-tx-index" value="-1">
-          <div>
-            <label class="block text-xs text-slate-400 font-medium mb-1">Transaction Type</label>
-            <select id="tx-type" onchange="toggleTxFields()" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
-              <option value="Share Contribution">Share Contribution (By Member Name)</option>
-              <option value="Member Loan">Member Loan (By Account ID)</option>
-              <option value="Non-Member Loan">Non-Member Loan (By Account ID)</option>
-              <option value="Loan Repayment">Loan Repayment (By Account ID)</option>
-              <option value="Late Fee">Late Fee Payment</option>
-            </select>
-          </div>
-          <div id="container-member-select">
-            <label class="block text-xs text-slate-400 font-medium mb-1">Select Member</label>
-            <select id="tx-member" onchange="autoCalculateShareAmount()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"></select>
-          </div>
-          <div id="container-account-select" class="hidden">
-            <label class="block text-xs text-slate-400 font-medium mb-1">Select Specific Account</label>
-            <select id="tx-account" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"></select>
-          </div>
-          <div>
-            <label class="block text-xs text-slate-400 font-medium mb-1">Amount (THB)</label>
-            <input type="number" id="tx-amount" min="1" step="0.01" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
-          </div>
-          <div>
-            <label class="block text-xs text-slate-400 font-medium mb-1">Transaction Date</label>
-            <input type="date" id="tx-date" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
-          </div>
-          <div id="loan-term-container" class="hidden">
-            <label class="block text-xs text-slate-400 font-medium mb-1">Loan Term (Months)</label>
-            <input type="number" id="tx-loan-term" min="1" max="8" value="4" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
-          </div>
-          <div id="guarantor-container" class="hidden">
-            <label class="block text-xs text-slate-400 font-medium mb-1">Guarantor Name</label>
-            <input type="text" id="tx-guarantor" placeholder="Required for non-members" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
-          </div>
-          <div class="sm:col-span-2 lg:col-span-4 flex justify-end">
-            <button type="submit" id="tx-submit-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-6 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20">
-              Submit Transaction
-            </button>
-          </div>
-        </form>
       </div>
 
-      <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
-        <div class="p-4 border-b border-slate-800">
-          <h2 class="font-bold text-base text-white">Transaction History</h2>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm text-slate-300">
-            <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
-              <tr>
-                <th class="p-3">Date</th>
-                <th class="p-3">Account / Member</th>
-                <th class="p-3">Type</th>
-                <th class="p-3">Amount</th>
-                <th class="p-3">Guarantor</th>
-                <th class="p-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="logs-table-body" class="divide-y divide-slate-800/50"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 6: NOTICE GENERATOR -->
-    <div id="tab-notice" class="tab-content hidden space-y-6">
-      <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
-        <div class="flex justify-between items-center">
-          <div>
-            <h2 class="font-bold text-base text-white">Group Chat Notice Generator</h2>
+      <!-- TAB 3: MONTHLY SUMMARY -->
+      <div id="tab-summary" class="tab-content hidden space-y-6">
+        <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden space-y-2">
+          <div class="p-4 border-b border-slate-800">
+            <h2 class="font-bold text-base text-white">Individual Account Checklist & Status</h2>
+            <p class="text-xs text-slate-400">Separate breakdown of share contributions and loan collectibles per account for this billing window</p>
           </div>
-          <button onclick="copyGroupSummary()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">Copy Notice</button>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-300">
+              <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                <tr>
+                  <th class="p-3">#</th>
+                  <th class="p-3">Account ID</th>
+                  <th class="p-3">Member Name</th>
+                  <th class="p-3">Share Due (THB)</th>
+                  <th class="p-3">Share Status</th>
+                  <th class="p-3">Loan Collectible (THB)</th>
+                  <th class="p-3">Loan Status</th>
+                </tr>
+              </thead>
+              <tbody id="summary-account-table-body" class="divide-y divide-slate-800/50"></tbody>
+            </table>
+          </div>
         </div>
-        <textarea id="group-summary-text" rows="14" readonly class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs font-mono text-slate-300 focus:outline-none"></textarea>
-      </div>
-    </div>
 
-  </main>
+        <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden space-y-2">
+          <div class="p-4 border-b border-slate-800">
+            <h2 class="font-bold text-base text-white">Member Total Payment Summary (Monthly)</h2>
+            <p class="text-xs text-slate-400">Aggregated total amount due per member across all their registered accounts for the active month</p>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-300">
+              <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                <tr>
+                  <th class="p-3">#</th>
+                  <th class="p-3">Member Name</th>
+                  <th class="p-3">Accounts</th>
+                  <th class="p-3">Total Shares Due</th>
+                  <th class="p-3">Total Loans Due</th>
+                  <th class="p-3 font-bold text-indigo-400">Combined Total Payout</th>
+                </tr>
+              </thead>
+              <tbody id="member-summary-table-body" class="divide-y divide-slate-800/50"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3.5: PAYOUT CALCULATIONS -->
+      <div id="tab-payouts" class="tab-content hidden space-y-6">
+        <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <h2 class="font-bold text-base text-white">End-of-Cycle Payout Calculations</h2>
+              <p class="text-xs text-slate-400">Track projected total returns per account</p>
+            </div>
+            <button onclick="calculateDividends()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">Recompute</button>
+          </div>
+        </div>
+        <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-300">
+              <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                <tr>
+                  <th class="p-3">#</th>
+                  <th class="p-3">Account ID</th>
+                  <th class="p-3">Member Name</th>
+                  <th class="p-3">Accumulated Shares</th>
+                  <th class="p-3">Cycle Interest Share</th>
+                  <th class="p-3 font-bold text-indigo-400">Total Projected Payout</th>
+                </tr>
+              </thead>
+              <tbody id="payouts-table-body" class="divide-y divide-slate-800/50"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: ACTIVE LOANS -->
+      <div id="tab-loans" class="tab-content hidden space-y-6">
+        <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
+          <div class="p-4 border-b border-slate-800">
+            <h2 class="font-bold text-base text-white">Active Loan Schedule Monitor</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-300">
+              <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                <tr>
+                  <th class="p-2.5">#</th>
+                  <th class="p-2.5">Account ID</th>
+                  <th class="p-2.5">Name</th>
+                  <th class="p-2.5">Term</th>
+                  <th class="p-2.5">Balance</th>
+                  <th class="p-2.5">Principal/Mo</th>
+                  <th class="p-2.5">Interest/Mo</th>
+                  <th class="p-2.5">Total Monthly Due</th>
+                  <th class="p-2.5 text-center">Status</th>
+                  <th class="p-2.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="loans-schedule-body" class="divide-y divide-slate-800/50"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 5: TRANSACTION LOGS -->
+      <div id="tab-logs" class="tab-content hidden space-y-6">
+        <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
+          <div class="flex justify-between items-center">
+            <h2 id="tx-form-title" class="font-bold text-base text-white">Record Transaction</h2>
+            <button id="tx-cancel-edit-btn" onclick="cancelTxEdit()" class="hidden text-xs text-rose-400 hover:underline">Cancel Edit</button>
+          </div>
+          <form id="tx-form" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <input type="hidden" id="edit-tx-index" value="-1">
+            <div>
+              <label class="block text-xs text-slate-400 font-medium mb-1">Transaction Type</label>
+              <select id="tx-type" onchange="toggleTxFields()" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                <option value="Share Contribution">Share Contribution (By Member Name)</option>
+                <option value="Member Loan">Member Loan (By Account ID)</option>
+                <option value="Non-Member Loan">Non-Member Loan (By Account ID)</option>
+                <option value="Loan Repayment">Loan Repayment (By Account ID)</option>
+                <option value="Late Fee">Late Fee Payment</option>
+              </select>
+            </div>
+            <div id="container-member-select">
+              <label class="block text-xs text-slate-400 font-medium mb-1">Select Member</label>
+              <select id="tx-member" onchange="autoCalculateShareAmount()" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"></select>
+            </div>
+            <div id="container-account-select" class="hidden">
+              <label class="block text-xs text-slate-400 font-medium mb-1">Select Specific Account</label>
+              <select id="tx-account" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"></select>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 font-medium mb-1">Amount (THB)</label>
+              <input type="number" id="tx-amount" min="1" step="0.01" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 font-medium mb-1">Transaction Date</label>
+              <input type="date" id="tx-date" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+            </div>
+            <div id="loan-term-container" class="hidden">
+              <label class="block text-xs text-slate-400 font-medium mb-1">Loan Term (Months)</label>
+              <input type="number" id="tx-loan-term" min="1" max="8" value="4" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+            </div>
+            <div id="guarantor-container" class="hidden">
+              <label class="block text-xs text-slate-400 font-medium mb-1">Guarantor Name</label>
+              <input type="text" id="tx-guarantor" placeholder="Required for non-members" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+            </div>
+            <div class="sm:col-span-2 lg:col-span-4 flex justify-end">
+              <button type="submit" id="tx-submit-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-6 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20">
+                Submit Transaction
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="bg-slate-900/60 rounded-2xl border border-slate-800 overflow-hidden">
+          <div class="p-4 border-b border-slate-800">
+            <h2 class="font-bold text-base text-white">Transaction History</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-300">
+              <thead class="bg-slate-950 text-xs text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                <tr>
+                  <th class="p-3">Date</th>
+                  <th class="p-3">Account / Member</th>
+                  <th class="p-3">Type</th>
+                  <th class="p-3">Amount</th>
+                  <th class="p-3">Guarantor</th>
+                  <th class="p-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="logs-table-body" class="divide-y divide-slate-800/50"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 6: NOTICE GENERATOR -->
+      <div id="tab-notice" class="tab-content hidden space-y-6">
+        <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 space-y-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <h2 class="font-bold text-base text-white">Group Chat Notice Generator</h2>
+            </div>
+            <button onclick="copyGroupSummary()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">Copy Notice</button>
+          </div>
+          <textarea id="group-summary-text" rows="14" readonly class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs font-mono text-slate-300 focus:outline-none"></textarea>
+        </div>
+      </div>
+
+    </main>
+  </div>
 
   <script>
     let accounts = {};
@@ -548,9 +570,9 @@
 
       textSpan.innerText = text;
       if (connected) {
-        badge.className = "flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+        badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
       } else {
-        badge.className = "flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20";
+        badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20";
       }
     }
 
@@ -576,7 +598,7 @@
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('bg-indigo-600', 'text-white');
-        btn.classList.add('text-slate-400', 'hover:bg-slate-900');
+        btn.classList.add('text-slate-400', 'hover:bg-slate-800/60', 'hover:text-slate-200');
       });
 
       const targetTab = document.getElementById(tabId);
@@ -584,7 +606,7 @@
       
       const activeBtn = document.getElementById('btn-' + tabId);
       if (activeBtn) {
-        activeBtn.classList.remove('text-slate-400', 'hover:bg-slate-900');
+        activeBtn.classList.remove('text-slate-400', 'hover:bg-slate-800/60', 'hover:text-slate-200');
         activeBtn.classList.add('bg-indigo-600', 'text-white');
       }
     }
@@ -642,7 +664,6 @@
     }
 
     function recomputeAccountSharesFromTransactions() {
-      // Reset all account shares to 0, then sum up verified Share Contribution transactions
       Object.values(accounts).forEach(acc => { acc.shares = 0; });
       transactions.forEach(tx => {
         if (tx.type === 'Share Contribution' && tx.memberName) {
@@ -682,7 +703,7 @@
           accounts[accId] = {
             id: accId,
             name: fullName,
-            shares: 0, // Starts at 0 until paid via transaction log
+            shares: 0,
             monthlyShareDue: 2000,
             loanBalance: 0,
             loanTermMonths: 4,
@@ -705,19 +726,48 @@
       const acc = accounts[accId];
       if (!acc) return;
 
-      const newName = prompt(`Update Name for Account ${accId}:`, acc.name);
+      const newAccId = prompt(`Edit Member ID for ${acc.name}:`, acc.id);
+      if (newAccId === null) return;
+      const trimmedId = newAccId.trim();
+
+      if (!trimmedId) {
+        alert("Member ID cannot be empty.");
+        return;
+      }
+
+      const newName = prompt(`Update Name for Member (${trimmedId}):`, acc.name);
       if (newName === null) return;
 
-      const newSharesStr = prompt(`Update Accumulated Shares (THB) for Account ${accId}:`, acc.shares);
+      const newSharesStr = prompt(`Update Accumulated Shares (THB) for (${trimmedId}):`, acc.shares);
       if (newSharesStr === null) return;
 
       const newShares = parseFloat(newSharesStr);
-      if (newName.trim() !== '') acc.name = newName.trim();
-      if (!isNaN(newShares) && newShares >= 0) acc.shares = newShares;
+
+      if (trimmedId !== accId) {
+        if (accounts[trimmedId]) {
+          alert(`Error: Member ID "${trimmedId}" already exists. Please choose a unique ID.`);
+          return;
+        }
+
+        // Migrate account under new Member ID key
+        accounts[trimmedId] = { ...acc, id: trimmedId };
+        delete accounts[accId];
+
+        // Update all existing transactions pointing to old Member ID
+        transactions.forEach(tx => {
+          if (tx.accId === accId) {
+            tx.accId = trimmedId;
+          }
+        });
+      }
+
+      const targetAcc = accounts[trimmedId] || acc;
+      if (newName.trim() !== '') targetAcc.name = newName.trim();
+      if (!isNaN(newShares) && newShares >= 0) targetAcc.shares = newShares;
 
       saveData();
       refreshAllViews();
-      showToast(`Account ${accId} updated.`);
+      showToast(`Member ID & Account details updated.`);
     }
 
     function toggleTxFields() {
@@ -1135,7 +1185,7 @@
               <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Active</span>
             </td>
             <td class="p-3 text-right">
-              <button onclick="editMemberInfo('${acc.id}')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1 rounded-lg transition border border-slate-700">Edit</button>
+              <button onclick="editMemberInfo('${acc.id}')" class="bg-indigo-600/80 hover:bg-indigo-500 text-white text-xs px-2.5 py-1 rounded-lg transition border border-indigo-500/30">Edit ID & Info</button>
             </td>
           </tr>
         `;
