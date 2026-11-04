@@ -498,7 +498,7 @@
           <div class="flex justify-between items-center">
             <div>
               <h2 class="font-bold text-base text-white">Group Chat Notice Generator</h2>
-              <p class="text-xs text-slate-400">Verified logged payments are automatically marked with [✔ PAID].</p>
+              <p class="text-xs text-slate-400">Displays Member IDs only with automatic [✔ PAID] verification badges.</p>
             </div>
             <button onclick="copyGroupSummary()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">Copy Notice</button>
           </div>
@@ -1680,7 +1680,7 @@
       showToast(`Total Interest Pool: ฿${calculatedTotalInterest.toFixed(2)} distributed equally.`);
     }
 
-    // AUTOMATIC CHECKMARKS ON NOTICE GENERATOR FOR VERIFIED PAYMENTS
+    // NOTICE GENERATOR SHOWS MEMBER IDs ONLY (NO FULL NAMES)
     function generateGroupSummary() {
       const list = getSortedAccounts();
       const activeMonthInput = document.getElementById('active-month');
@@ -1691,7 +1691,6 @@
         monthYearStr = new Date(y, m - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
       }
 
-      // Collect paid accounts/members in current billing window
       const paidShareMembersSet = new Set();
       const paidLoanAccountsSet = new Set();
       transactions.forEach(tx => {
@@ -1715,7 +1714,7 @@
           totalSharesDue += shareAmount;
           const isPaid = paidShareMembersSet.has(acc.name.trim().toLowerCase());
           const checkMark = isPaid ? "[✔ PAID]" : "[ ] PENDING";
-          summary += `${index + 1}. ${acc.id} (${acc.name}) - ฿${shareAmount.toLocaleString()} ${checkMark}\n`;
+          summary += `${index + 1}. ${acc.id} - ฿${shareAmount.toLocaleString()} ${checkMark}\n`;
         });
 
         summary += `\n----------------------------------\n\nLOAN COLLECTIBLES\n`;
@@ -1734,7 +1733,7 @@
 
             const isPaid = paidLoanAccountsSet.has(acc.id);
             const checkMark = isPaid ? "[✔ PAID]" : "[ ] PENDING";
-            summary += `${index + 1}. ${acc.id} (${acc.name}): ฿${loanPayment.toFixed(2)} ${checkMark}\n`;
+            summary += `${index + 1}. ${acc.id} - ฿${loanPayment.toFixed(2)} ${checkMark}\n`;
           });
         }
 
