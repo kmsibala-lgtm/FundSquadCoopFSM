@@ -498,7 +498,7 @@
           <div class="flex justify-between items-center">
             <div>
               <h2 class="font-bold text-base text-white">Group Chat Notice Generator</h2>
-              <p class="text-xs text-slate-400">Displays Member IDs only with automatic [✔ PAID] verification badges.</p>
+              <p class="text-xs text-slate-400">Displays Member IDs only with clean green check verification.</p>
             </div>
             <button onclick="copyGroupSummary()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">Copy Notice</button>
           </div>
@@ -883,7 +883,7 @@
           const monthLabel = new Date(y, m - 1, 1).toLocaleString('default', { month: 'short', year: 'numeric' });
           shareMonthsEl.innerHTML += `
             <span class="px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-              <span>✔</span> ${monthLabel}
+              <span>✅</span> ${monthLabel}
             </span>
           `;
         });
@@ -1307,7 +1307,7 @@
 
       if (Math.abs(variance) < 0.01) {
         varianceEl.className = 'text-lg font-bold text-emerald-400 mt-1';
-        statusText.innerText = '✔ Balanced perfectly with bank';
+        statusText.innerText = '✅ Balanced perfectly with bank';
         statusText.className = 'text-[10px] text-emerald-400 mt-0.5 font-semibold';
       } else if (variance > 0) {
         varianceEl.className = 'text-lg font-bold text-amber-400 mt-1';
@@ -1680,7 +1680,7 @@
       showToast(`Total Interest Pool: ฿${calculatedTotalInterest.toFixed(2)} distributed equally.`);
     }
 
-    // NOTICE GENERATOR SHOWS MEMBER IDs ONLY (NO FULL NAMES)
+    // NOTICE GENERATOR WITH GREEN CHECK (✅) AND NO "PAID" TEXT
     function generateGroupSummary() {
       const list = getSortedAccounts();
       const activeMonthInput = document.getElementById('active-month');
@@ -1713,7 +1713,7 @@
           const shareAmount = acc.monthlyShareDue || 2000;
           totalSharesDue += shareAmount;
           const isPaid = paidShareMembersSet.has(acc.name.trim().toLowerCase());
-          const checkMark = isPaid ? "[✔ PAID]" : "[ ] PENDING";
+          const checkMark = isPaid ? "✅" : "[ ]";
           summary += `${index + 1}. ${acc.id} - ฿${shareAmount.toLocaleString()} ${checkMark}\n`;
         });
 
@@ -1732,7 +1732,7 @@
             totalLoanDue += loanPayment;
 
             const isPaid = paidLoanAccountsSet.has(acc.id);
-            const checkMark = isPaid ? "[✔ PAID]" : "[ ] PENDING";
+            const checkMark = isPaid ? "✅" : "[ ]";
             summary += `${index + 1}. ${acc.id} - ฿${loanPayment.toFixed(2)} ${checkMark}\n`;
           });
         }
