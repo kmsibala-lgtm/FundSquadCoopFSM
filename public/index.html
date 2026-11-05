@@ -562,76 +562,148 @@
       }, 3000);
     }
 
-    function loadCloudData() {
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(data => {
-            if (data && (Object.keys(data.accounts || {}).length > 0 || (data.transactions || []).length > 0)) {
-              accounts = data.accounts || {};
-              transactions = data.transactions || [];
-            } else {
-              accounts = JSON.parse(localStorage.getItem('fs_accounts')) || {};
-              transactions = JSON.parse(localStorage.getItem('fs_transactions')) || [];
-            }
+    // ---------- Cloud storage (MongoDB Atlas via /api/state) ----------
+    let stateVersion = 0;
+    let cloudLoaded = false;
+    let saving = false;
+    let savePending = false;
+
+    function authHeaders() {
+      const p = localStorage.getItem('fs_passcode');
+      const h = { 'Content-Type': 'application/json' };
+      if (p) h['x-passcode'] = p;
+      return h;
+    }
+
+    async function apiFetch(url, options = {}) {
+      const run = () => fetch(url, { ...options, headers: authHeaders(), cache: 'no-store' });
+      let res = await run();
+      if (res.status === 401) {
+        const p = prompt('Enter the FundSquad passcode:');
+        if (!p) throw new Error('Passcode required');
+        localStorage.setItem('fs_passcode', p);
+        res = await run();
+        if (res.status === 401) {
+          localStorage.removeItem('fs_passcode');
+          throw new Error('Wrong passcode');
+        }
+      }
+      return res;
+    }
+
+    function readLocalData() {
+      try {
+        return {
+          accounts: JSON.parse(localStorage.getItem('fs_accounts')) || {},
+          transactions: JSON.parse(localStorage.getItem('fs_transactions')) || []
+        };
+      } catch (e) {
+        return { accounts: {}, transactions: [] };
+      }
+    }
+
+    function cacheLocally() {
+      localStorage.setItem('fs_accounts', JSON.stringify(accounts));
+      localStorage.setItem('fs_transactions', JSON.stringify(transactions));
+    }
+
+    async function loadCloudData() {
+      try {
+        updateSyncBadge(false, "Loading…");
+        const res = await apiFetch('/api/state');
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        stateVersion = data.version || 0;
+        let ok = true;
+
+        if (stateVersion === 0) {
+          // Nothing in the cloud yet: adopt this browser's data and upload it
+          const local = readLocalData();
+          accounts = local.accounts;
+          transactions = local.transactions;
+          cloudLoaded = true;
+          if (Object.keys(accounts).length > 0 || transactions.length > 0) {
             recomputeAccountSharesFromTransactions();
-            refreshAllViews();
-            updateSyncBadge(true, "Cloud Synced");
-          })
-          .withFailureHandler(err => {
-            console.warn("Cloud load failed, falling back to local storage:", err);
-            loadLocalData();
-          })
-          .loadCoOpData();
-      } else {
+            ok = await saveData();
+            if (ok) showToast("Your existing data was uploaded to the cloud.");
+          }
+        } else {
+          accounts = data.accounts || {};
+          transactions = data.transactions || [];
+          cloudLoaded = true;
+          cacheLocally();
+        }
+
+        recomputeAccountSharesFromTransactions();
+        refreshAllViews();
+        if (ok) updateSyncBadge(true, "Cloud Synced");
+      } catch (err) {
+        console.warn("Cloud load failed, falling back to local storage:", err);
+        cloudLoaded = false;
         loadLocalData();
+        showToast("⚠️ Cannot reach the cloud. Changes are NOT being saved online.", 'error');
       }
     }
 
     function loadLocalData() {
-      try {
-        accounts = JSON.parse(localStorage.getItem('fs_accounts')) || {};
-        transactions = JSON.parse(localStorage.getItem('fs_transactions')) || [];
-      } catch (e) {
-        accounts = {};
-        transactions = [];
-      }
+      const local = readLocalData();
+      accounts = local.accounts;
+      transactions = local.transactions;
       recomputeAccountSharesFromTransactions();
       refreshAllViews();
-      updateSyncBadge(false, "Local Mode");
+      updateSyncBadge(false, "Offline (not synced)");
     }
 
-    function saveData() {
-      localStorage.setItem('fs_accounts', JSON.stringify(accounts));
-      localStorage.setItem('fs_transactions', JSON.stringify(transactions));
+    async function saveData() {
+      cacheLocally();
 
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run
-          .withSuccessHandler(() => {
-            updateSyncBadge(true, "Cloud Synced");
-          })
-          .withFailureHandler(err => {
-            console.warn("Cloud save failed:", err);
-            updateSyncBadge(false, "Local Mode (Save Error)");
-          })
-          .saveCoOpData({ accounts, transactions });
-      } else {
-        updateSyncBadge(false, "Local Mode");
+      if (!cloudLoaded) {
+        updateSyncBadge(false, "Offline (not synced)");
+        return false;
+      }
+      if (saving) { savePending = true; return true; }
+
+      saving = true;
+      try {
+        do {
+          savePending = false;
+          updateSyncBadge(false, "Saving…");
+          const res = await apiFetch('/api/state', {
+            method: 'PUT',
+            body: JSON.stringify({ accounts, transactions, baseVersion: stateVersion })
+          });
+
+          if (res.status === 409) {
+            savePending = false;
+            alert("This data was changed on another device or tab. The latest version will now be loaded, so please re-enter your last change.");
+            await loadCloudData();
+            return false;
+          }
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+
+          const out = await res.json();
+          stateVersion = out.version;
+        } while (savePending);
+
+        updateSyncBadge(true, "Cloud Synced");
+        return true;
+      } catch (err) {
+        console.warn("Cloud save failed:", err);
+        updateSyncBadge(false, "Save Error – not synced");
+        showToast("⚠️ Could not save to the cloud. Check your connection.", 'error');
+        return false;
+      } finally {
+        saving = false;
       }
     }
 
-    function confirmResetCycle() {
+    async function confirmResetCycle() {
       if (confirm("Are you sure you want to reset all co-op accounts and transaction logs for this cycle? This action cannot be undone.")) {
         accounts = {};
         transactions = [];
-        localStorage.removeItem('fs_accounts');
-        localStorage.removeItem('fs_transactions');
-        
-        if (typeof google !== 'undefined' && google.script && google.script.run) {
-          google.script.run.resetCoOpCycleData();
-        }
-
         refreshAllViews();
-        showToast("Cycle data has been completely reset.");
+        const ok = await saveData();
+        showToast(ok ? "Cycle data has been completely reset." : "Reset on this device only; cloud save failed.", ok ? 'info' : 'error');
       }
     }
 
