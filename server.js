@@ -123,6 +123,12 @@ app.get('/api/state', wrap(async (req, res) => {
   });
 }));
 
+// Tiny check so other devices can see if anything changed without downloading everything
+app.get('/api/state/version', wrap(async (req, res) => {
+  const doc = await CoOpState.findOne({ key: 'main' }, { version: 1 }).lean();
+  res.json({ version: doc ? doc.version : 0 });
+}));
+
 // Save everything (with a version check so devices can't silently overwrite each other)
 app.put('/api/state', wrap(async (req, res) => {
   const { accounts, transactions, baseVersion } = req.body || {};
