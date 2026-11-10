@@ -21,22 +21,27 @@ if (!cached) cached = global._mongoose = { conn: null, promise: null };
 
 async function connectDB() {
   if (!process.env.MONGO_URI) throw new Error('MONGO_URI is not set');
-  if (cached.conn) return cached.conn;
-  if (!cached.promise) {
+
+  // Already connected and healthy: reuse it
+  if (mongoose.connection.readyState === 1) return mongoose.connection;
+
+  // Never connected, or the connection dropped (common on serverless after idle): reconnect
+  const rs = mongoose.connection.readyState;
+  if (!cached.promise || rs === 0 || rs === 3) {
     cached.promise = mongoose
-      .connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 8000 })
+      .connect(process.env.MONGO_URI, { serverSelectionTimeoutMS: 8000, maxPoolSize: 5 })
       .then((m) => {
         console.log('Connected to MongoDB Atlas');
         return m;
       });
   }
   try {
-    cached.conn = await cached.promise;
+    await cached.promise;
   } catch (err) {
     cached.promise = null; // allow a retry on the next request
     throw err;
   }
-  return cached.conn;
+  return mongoose.connection;
 }
 
 const wrap = (fn) => (req, res, next) =>
