@@ -2,18 +2,51 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#020617">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="FundSquad">
   <title>FundSquad Co-Op Financial System</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+    /* ---- Device friendliness ---- */
+    html { -webkit-text-size-adjust: 100%; }
+    body { overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+    .overflow-x-auto { -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+    #sync-status, #sync-status-m { cursor: pointer; }
+    button { touch-action: manipulation; }
+
+    @media (max-width: 767px) {
+      /* 16px inputs stop iPhone Safari from zooming in on tap; taller = easier to tap */
+      input:not([type=checkbox]):not([type=radio]), select, textarea {
+        font-size: 16px !important;
+        min-height: 44px;
+      }
+      /* keep table columns readable: swipe the table sideways instead of squashing text */
+      .overflow-x-auto table th, .overflow-x-auto table td { white-space: nowrap; }
+      /* bigger tap targets for the small buttons inside tables */
+      table button { min-height: 36px; padding-left: 0.75rem; padding-right: 0.75rem; }
+      /* member pop-up becomes a bottom sheet */
+      #member-detail-modal { padding: 0 !important; align-items: flex-end !important; }
+      #member-detail-modal > div { max-width: 100% !important; max-height: 92vh !important;
+        border-radius: 1.25rem 1.25rem 0 0 !important; padding: 1rem !important; }
+      /* tighter side padding so content uses the full width */
+      main { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen antialiased flex flex-col md:flex-row">
 
   <!-- Left Sidebar Navigation -->
-  <aside class="w-full md:w-64 bg-slate-900 border-r border-slate-800 flex-shrink-0 flex flex-col justify-between p-4 sticky top-0 md:h-screen z-50">
+  <aside class="hidden md:flex w-64 bg-slate-900 border-r border-slate-800 flex-shrink-0 flex-col justify-between p-4 sticky top-0 md:h-screen z-50">
     <div class="space-y-6">
       <!-- Co-Op Brand Header -->
       <div class="flex items-center gap-3 px-2 py-1">
@@ -27,7 +60,7 @@
       </div>
 
       <!-- Sync Status Badge -->
-      <div id="sync-status" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+      <div id="sync-status" onclick="manualSync()" title="Tap to refresh from the cloud" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
         <span id="sync-text">Connected</span>
       </div>
@@ -72,6 +105,39 @@
     </div>
   </aside>
 
+  <!-- MOBILE: slim top bar -->
+  <header class="md:hidden sticky top-0 z-40 bg-slate-900/95 backdrop-blur border-b border-slate-800 px-3 py-2 flex items-center justify-between gap-2" style="padding-top: max(0.5rem, env(safe-area-inset-top, 0px));">
+    <div class="flex items-center gap-2 min-w-0">
+      <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-black text-sm text-white flex-shrink-0">FS</div>
+      <span class="font-bold text-sm text-white truncate">FundSquad</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <div id="sync-status-m" onclick="manualSync()" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span id="sync-text-m">Connected</span>
+      </div>
+      <div class="relative">
+        <button onclick="toggleMobileMenu(event)" aria-label="More options" class="w-9 h-9 rounded-xl bg-slate-800 text-slate-200 text-lg flex items-center justify-center">⋯</button>
+        <div id="mobile-menu" class="hidden absolute right-0 mt-2 w-52 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-2 space-y-2">
+          <a href="https://docs.google.com/spreadsheets/d/1m7CPy8srcmMCjC98cEwx86an09_n5fn2hWUGR6L9AQ8/edit" target="_blank" class="block w-full bg-emerald-600/90 text-white text-xs font-semibold px-3 py-2.5 rounded-lg text-center">📊 Open Sheets Record</a>
+          <button onclick="toggleMobileMenu(event); confirmResetCycle()" class="w-full bg-rose-950/60 text-rose-300 border border-rose-800/60 text-xs font-semibold px-3 py-2.5 rounded-lg">⚠️ Reset Cycle</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MOBILE: bottom tab bar (swipe sideways to see all tabs) -->
+  <nav id="mobile-nav" class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 backdrop-blur border-t border-slate-800 flex overflow-x-auto no-scrollbar px-1 pt-1 safe-bottom">
+    <button id="mbtn-tab-dash" onclick="switchTab('tab-dash')" class="mtab-btn flex-shrink-0 w-[76px] flex flex-col items-center gap-0.5 py-2 rounded-xl text-[10px] font-semibold transition text-indigo-300 bg-indigo-500/15"><span class="text-lg leading-none">📊</span>Dashboard</button>
+    <button id="mbtn-tab-directory" onclick="switchTab('tab-directory')" class="mtab-btn flex-shrink-0 w-[76px] flex flex-col items-center gap-0.5 py-2 rounded-xl text-[10px] font-semibold transition text-slate-400"><span class="text-lg leading-none">👥</span>Members</button>
+    <button id="mbtn-tab-members" onclick="switchTab('tab-members')" class="mtab-btn flex-shrink-0 w-[76px] flex flex-col items-center gap-0.5 py-2 rounded-xl text-[10px] font-semibold transition text-slate-400"><span class="text-lg leading-none">💳</span>Accounts</button>
+    <button id="mbtn-tab-summary" onclick="switchTab('tab-summary')" class="mtab-btn flex-shrink-0 w-[76px] flex flex-col items-center gap-0.5 py-2 rounded-xl text-[10px] font-semibold transition text-slate-400"><span class="text-lg leading-none">📅</span>Summary</button>
+    <button id="mbtn-tab-payouts" onclick="switchTab('tab-payouts')" class="mtab-btn flex-shrink-0 w-[76px] flex flex-col items-center gap-0.5 py-2 rounded-xl text-[10px] font-semibold transition text-slate-400"><span class="text-lg leading-none">💰</span>Payouts</button>
+    <button id="mbtn-tab-loans" onclick="switchTab('tab-loans')" class="mtab-btn flex-shrink-0 w-[76px] flex flex-col items-center gap-0.5 py-2 rounded-xl text-[10px] font-semibold transition text-slate-400"><span class="text-lg leading-none">💵</span>Loans</button>
+    <button id="mbtn-tab-logs" onclick="switchTab('tab-logs')" class="mtab-btn flex-shrink-0 w-[76px] flex flex-col items-center gap-0.5 py-2 rounded-xl text-[10px] font-semibold transition text-slate-400"><span class="text-lg leading-none">📝</span>Logs</button>
+    <button id="mbtn-tab-notice" onclick="switchTab('tab-notice')" class="mtab-btn flex-shrink-0 w-[76px] flex flex-col items-center gap-0.5 py-2 rounded-xl text-[10px] font-semibold transition text-slate-400"><span class="text-lg leading-none">📢</span>Notices</button>
+  </nav>
+
   <!-- Main Content Wrapper -->
   <div class="flex-1 flex flex-col min-w-0">
 
@@ -79,7 +145,7 @@
       ⚠️ Sabbath Observance Active (Friday 18:00 – Saturday 18:00). New financial transactions are disabled.
     </div>
 
-    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+    <div id="toast-container" class="fixed bottom-24 md:bottom-4 right-4 z-50 flex flex-col gap-2"></div>
 
     <!-- MEMBER DETAILS MODAL -->
     <div id="member-detail-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -121,7 +187,7 @@
       </div>
     </div>
 
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-28 md:pb-6 space-y-6">
 
       <!-- Global Period Selectors & Billing Window Config -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
@@ -707,17 +773,51 @@
       }
     }
 
-    function updateSyncBadge(connected, text) {
-      const badge = document.getElementById('sync-status');
-      const textSpan = document.getElementById('sync-text');
-      if (!badge || !textSpan) return;
+    // ---------- Keep devices in sync ----------
+    let lastEditTime = 0;
+    document.addEventListener('input', (e) => { if (e.target.closest && e.target.closest('form')) lastEditTime = Date.now(); });
+    document.addEventListener('change', (e) => { if (e.target.closest && e.target.closest('form')) lastEditTime = Date.now(); });
 
-      textSpan.innerText = text;
-      if (connected) {
-        badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
-      } else {
-        badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20";
-      }
+    async function checkForUpdates() {
+      if (!cloudLoaded || saving || savePending || document.hidden) return;
+      // never interrupt someone who is typing or has a pop-up open
+      const ae = document.activeElement;
+      if (ae && ['INPUT', 'SELECT', 'TEXTAREA'].includes(ae.tagName)) return;
+      if (Date.now() - lastEditTime < 60000) return;
+      const modal = document.getElementById('member-detail-modal');
+      if (modal && !modal.classList.contains('hidden')) return;
+      try {
+        const res = await apiFetch('/api/state/version');
+        if (!res.ok) return;
+        const out = await res.json();
+        if (out.version !== stateVersion) {
+          await loadCloudData();
+          showToast("Updated with the latest data from another device.");
+        }
+      } catch (err) { /* ignore network blips */ }
+    }
+
+    async function manualSync() {
+      if (saving) return;
+      if (!cloudLoaded && !confirm("This will replace the data on this device with the cloud copy. Continue?")) return;
+      await loadCloudData();
+    }
+
+    setInterval(checkForUpdates, 30000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) checkForUpdates(); });
+    window.addEventListener('focus', checkForUpdates);
+
+    function updateSyncBadge(connected, text) {
+      const cls = connected
+        ? "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+        : "flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20";
+      [['sync-status', 'sync-text'], ['sync-status-m', 'sync-text-m']].forEach(([bid, tid]) => {
+        const badge = document.getElementById(bid);
+        const span = document.getElementById(tid);
+        if (!badge || !span) return;
+        span.innerText = text;
+        badge.className = cls;
+      });
     }
 
     function updateCyclePeriod() {
@@ -753,7 +853,31 @@
         activeBtn.classList.remove('text-slate-400', 'hover:bg-slate-800/60', 'hover:text-slate-200');
         activeBtn.classList.add('bg-indigo-600', 'text-white');
       }
+
+      // Mobile bottom bar
+      document.querySelectorAll('.mtab-btn').forEach(b => {
+        b.classList.remove('text-indigo-300', 'bg-indigo-500/15');
+        b.classList.add('text-slate-400');
+      });
+      const mBtn = document.getElementById('mbtn-' + tabId);
+      const mNav = document.getElementById('mobile-nav');
+      if (mBtn && mNav) {
+        mBtn.classList.remove('text-slate-400');
+        mBtn.classList.add('text-indigo-300', 'bg-indigo-500/15');
+        mNav.scrollTo({ left: mBtn.offsetLeft - (mNav.clientWidth - mBtn.clientWidth) / 2, behavior: 'smooth' });
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+
+    function toggleMobileMenu(e) {
+      if (e) e.stopPropagation();
+      const m = document.getElementById('mobile-menu');
+      if (m) m.classList.toggle('hidden');
+    }
+    document.addEventListener('click', () => {
+      const m = document.getElementById('mobile-menu');
+      if (m) m.classList.add('hidden');
+    });
 
     function checkSabbath() {
       const now = new Date();
